@@ -1,6 +1,5 @@
 'use client';
 import React, { useState } from 'react';
-import { db, addDoc, collection } from '../../firebase'; 
 
 export default function FormPage() {
   const [step, setStep] = useState(0);
@@ -227,18 +226,31 @@ export default function FormPage() {
 
   const submitForm = async () => {
     if (!validateAnswer()) {
-      setErrors(prev => ({ ...prev, [getCurrentQ().id]: 'Required' }));
+      setErrors((prev) => ({ ...prev, [getCurrentQ().id]: 'Required' }));
       return;
     }
-    
-    // Save form data to Firestore
+  
     try {
-      const docRef = await addDoc(collection(db, "formResponses"), formData);
-      console.log("Document written with ID: ", docRef.id);
-      alert("Form submitted successfully!");
-    } catch (e) {
-      console.error("Error adding document: ", e);
-      alert("Error submitting the form");
+      const response = await fetch('http://localhost:3001/submit-form', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+  
+      const data = await response.json();
+  
+      if (data.success) {
+        alert('Form submitted successfully!');
+        setFormData({});
+        setStep(0);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('Error submitting the form');
     }
   };
 
