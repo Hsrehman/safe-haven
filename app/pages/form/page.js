@@ -1,10 +1,17 @@
 'use client';
 import React, { useState } from 'react';
+import { 
+  validateOnChange, 
+  validateOnBlur, 
+  validateCurrentQuestion as validateCurrentQ,
+  isOptional 
+} from '@/app/utils/formValidation';
 
 export default function FormPage() {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   const formQuestions = [
     {
@@ -46,7 +53,7 @@ export default function FormPage() {
     {
       id: 'location',
       question: 'What is your current location?',
-      type: 'text',
+      type: 'address',
       placeholder: 'City, region, or postcode',
       required: true
     },
@@ -172,8 +179,6 @@ export default function FormPage() {
     }
   ];
 
-  const isOptional = q => ['email', 'phone', 'fullName', 'medicalConditions', 'additionalInfo', 'gender'].includes(q.id);
-
   const shouldShow = q => {
     if (q.id === 'womenOnly') return formData.gender === 'Female' || formData.gender === 'Non-binary';
     if (q.id === 'children' || q.id === 'childrenCount') return formData.groupType !== 'Alone';
@@ -193,31 +198,58 @@ export default function FormPage() {
 
   const getCurrentQ = () => getQuestions()[step];
 
-  const validateAnswer = () => {
-    const q = getCurrentQ();
-    const ans = formData[q.id];
-    if (isOptional(q)) return true;
-    if (q.type === 'compound') {
-      const mainAns = formData[q.subQuestions[0].id];
-      if (!mainAns) return false;
-      if (mainAns === 'Yes') return !!formData[q.subQuestions[1].id];
-      return true;
-    }
-    if (['text', 'email', 'tel', 'date', 'select'].includes(q.type)) return !!ans?.trim();
-    return !!ans;
-  };
-
   const handleChange = (id, val) => {
     setFormData(prev => ({...prev, [id]: val}));
-    setErrors(prev => ({...prev, [id]: null}));
+    setTouched(prev => ({...prev, [id]: true}));
+    
+    const question = formQuestions.find(q => q.id === id);
+    if (question) {
+      const { isValid, error } = validateOnChange(question, val);
+      if (!isValid) {
+        setErrors(prev => ({ ...prev, [id]: error }));
+      } else {
+        setErrors(prev => {
+          const newErrors = {...prev};
+          delete newErrors[id];
+          return newErrors;
+        });
+      }
+    }
+  };
+
+  const handleBlur = (id) => {
+    setTouched(prev => ({ ...prev, [id]: true }));
+  
+    const question = formQuestions.find(q => q.id === id);
+    if (question) {
+      const { isValid, error } = validateOnBlur(question, formData[id]);
+      if (!isValid) {
+        setErrors(prev => ({ ...prev, [id]: error }));
+      }
+    }
+  };
+
+  const validateCurrentQuestion = () => {
+    const currentQuestion = getCurrentQ();
+    const { isValid, error } = validateCurrentQ(currentQuestion, formData[currentQuestion.id]);
+    
+    if (!isValid) {
+      setErrors(prev => ({
+        ...prev,
+        [currentQuestion.id]: error
+      }));
+    }
+    
+    return isValid;
   };
 
   const goNext = () => {
-    if (!validateAnswer()) {
-      setErrors(prev => ({...prev, [getCurrentQ().id]: 'Required'}));
-      return;
+    const isValid = validateCurrentQuestion();
+    if (!isValid) return;
+
+    if (step < getQuestions().length - 1) {
+      setStep(s => s + 1);
     }
-    if (step < getQuestions().length - 1) setStep(s => s + 1);
   };
 
   const goPrev = () => {
@@ -225,32 +257,33 @@ export default function FormPage() {
   };
 
   const submitForm = async () => {
-    if (!validateAnswer()) {
-      setErrors((prev) => ({ ...prev, [getCurrentQ().id]: 'Required' }));
-      return;
-    }
-  
+    const isValid = validateCurrentQuestion();
+    if (!isValid) return;
+
     try {
-      const response = await fetch('http://localhost:3001/submit-form', {
+      const response = await fetch('/api/submit-form', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData)
       });
-  
+
+      if (!response.ok) throw new Error('Failed to submit form');
+
       const data = await response.json();
-  
       if (data.success) {
         alert('Form submitted successfully!');
         setFormData({});
         setStep(0);
+        setErrors({});
+        setTouched({});
       } else {
-        throw new Error(data.message);
+        throw new Error(data.message || 'Form submission failed');
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert('Error submitting the form');
+      alert('Error submitting form. Please try again.');
     }
   };
 
@@ -260,7 +293,7 @@ export default function FormPage() {
       transition-all duration-200 bg-gray-50 text-gray-800
       ${err ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-purple-300'}`;
 
-    if (['text', 'email', 'tel', 'date', 'number'].includes(q.type)) {
+    if (['text', 'email', 'tel', 'date', 'number', 'address'].includes(q.type)) {
       return (
         <div className="space-y-2">
           <input
@@ -268,6 +301,7 @@ export default function FormPage() {
             placeholder={q.placeholder}
             value={formData[q.id] || ''}
             onChange={e => handleChange(q.id, e.target.value)}
+            onBlur={() => handleBlur(q.id)}
             className={`${baseStyle} hover:shadow-sm`}
           />
           {err && <p className="text-red-500 text-sm mt-1 ml-2">{err}</p>}
@@ -281,6 +315,7 @@ export default function FormPage() {
           <select
             value={formData[q.id] || ''}
             onChange={e => handleChange(q.id, e.target.value)}
+            onBlur={() => handleBlur(q.id)}
             className={baseStyle}
           >
             <option value="">Select...</option>
@@ -303,6 +338,7 @@ export default function FormPage() {
                 value={opt}
                 checked={formData[q.id] === opt}
                 onChange={e => handleChange(q.id, e.target.value)}
+                onBlur={() => handleBlur(q.id)}
                 className="w-5 h-5 text-purple-600 focus:ring-purple-500"
               />
               <span className="ml-3 text-gray-700 font-medium">{opt}</span>
@@ -321,6 +357,7 @@ export default function FormPage() {
               type="checkbox"
               checked={formData[q.id] || false}
               onChange={e => handleChange(q.id, e.target.checked)}
+              onBlur={() => handleBlur(q.id)}
               className="w-5 h-5 text-violet-600"
             />
             <span className="ml-3 text-gray-700">{q.label}</span>
@@ -337,6 +374,7 @@ export default function FormPage() {
             placeholder={q.placeholder}
             value={formData[q.id] || ''}
             onChange={e => handleChange(q.id, e.target.value)}
+            onBlur={() => handleBlur(q.id)}
             className={`${baseStyle} h-32`}
           />
           {err && <p className="text-red-500 text-sm mt-1">{err}</p>}
@@ -355,6 +393,7 @@ export default function FormPage() {
                   value={opt}
                   checked={formData[q.subQuestions[0].id] === opt}
                   onChange={e => handleChange(q.subQuestions[0].id, e.target.value)}
+                  onBlur={() => handleBlur(q.subQuestions[0].id)}
                   className="w-5 h-5 text-violet-600"
                 />
                 <span className="ml-3 text-gray-700">{opt}</span>
@@ -368,6 +407,7 @@ export default function FormPage() {
                 placeholder={q.subQuestions[1].placeholder}
                 value={formData[q.subQuestions[1].id] || ''}
                 onChange={e => handleChange(q.subQuestions[1].id, e.target.value)}
+                onBlur={() => handleBlur(q.subQuestions[1].id)}
                 className={baseStyle}
                 min="1"
               />
@@ -395,7 +435,7 @@ export default function FormPage() {
             Finding you a safe and comfortable temporary home
           </p>
         </div>
-        
+
         <div className="max-w-2xl mx-auto p-8 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-200">
           <div className="mb-10">
             <div className="h-3 bg-gray-300 rounded-full overflow-hidden">
@@ -413,7 +453,7 @@ export default function FormPage() {
           <div className="mb-8">
             <h2 className="text-2xl font-semibold mb-6 text-gray-800 transition-all duration-300">
               {currentQ.question}
-              {!isOptional(currentQ) && 
+              {!isOptional(currentQ.id) &&
                 <span className="text-pink-500 ml-1 animate-pulse">*</span>
               }
             </h2>
@@ -434,7 +474,7 @@ export default function FormPage() {
             >
               ← Back
             </button>
-            
+
             {step === questions.length - 1 ? (
               <button
                 onClick={submitForm}
