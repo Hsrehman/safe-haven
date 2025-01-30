@@ -58,7 +58,7 @@ export const isOptional = (questionId) => {
         return 'Please enter valid text (letters only, minimum 2 characters)';
 
         case 'address':
-          return 'Please enter a valid address';
+          return 'Please enter a valid address atleast 2 characters';
       
       case 'email':
         return 'Please enter a valid email address (e.g., name@example.com)';
