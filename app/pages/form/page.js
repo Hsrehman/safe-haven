@@ -5,7 +5,7 @@ import { validateField, validateForm, OPTIONAL_FIELDS } from '@/app/utils/formVa
 import { formQuestions } from '@/app/utils/formQuestions';
 import { ClipboardList, ArrowRight, ArrowLeft, Send } from 'lucide-react';
 
-// Animation variants
+
 const fadeIn = {
   initial: { opacity: 0, x: 20 },
   animate: { opacity: 1, x: 0 },
@@ -35,7 +35,7 @@ const shouldShowField = (field, formData) => {
 
   return conditions[field.id] ? conditions[field.id]() : true;
 };
-// Error Message Component
+
 const ErrorMessage = ({ error }) => (
   <AnimatePresence>
     {error && (
@@ -50,7 +50,7 @@ const ErrorMessage = ({ error }) => (
     )}
   </AnimatePresence>
 );
-// Form Field Component
+
 const FormField = ({ field, value, onChange, onBlur, error, formData, handleChange }) => {
   const baseStyle = "w-full px-5 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300 bg-gray-50 text-gray-800";
   const errorStyle = "border-red-500 bg-red-50";
@@ -221,7 +221,7 @@ export default function FormPage() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Get visible questions based on current form data
+
   const getVisibleQuestions = () => formQuestions.filter(q => shouldShowField(q, formData));
   const currentQuestion = getVisibleQuestions()[step];
 

@@ -1,5 +1,3 @@
-// Simple object lookup is more efficient than array includes
-// Fields that don't require user input
 export const OPTIONAL_FIELDS = {
     email: true,
     phone: true,
@@ -52,17 +50,16 @@ export const OPTIONAL_FIELDS = {
   };
   
   export const validateField = (field, value, formData = {}) => {
-    // Special handling for compound fields
     if (field.type === 'compound') {
       const mainValue = formData[field.subQuestions[0].id];
       const countValue = formData[field.subQuestions[1].id];
       
-      // First validate the main Yes/No question
+
       if (!mainValue) {
         return { isValid: false, error: ERROR_MESSAGES.required };
       }
       
-      // If they answered Yes, validate the number of children
+
       if (mainValue === 'Yes' && (!countValue || countValue <= 0 || countValue > 20)) {
         return { isValid: false, error: ERROR_MESSAGES.number };
       }

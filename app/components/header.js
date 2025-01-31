@@ -13,7 +13,7 @@ export default function Header() {
           </a>
         </div>
         
-        {/* Mobile menu button */}
+
         <button 
           className="md:hidden"
           onClick={() => setIsMenuOpen(!isMenuOpen)}

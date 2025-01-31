@@ -1,4 +1,4 @@
-// formQuestions.js
+
 export const formQuestions = [
     {
       id: 'fullName',
