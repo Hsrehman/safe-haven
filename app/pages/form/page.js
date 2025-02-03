@@ -282,55 +282,44 @@ export default function FormPage() {
 
   const handleSubmit = async () => {
     const { isValid, errors: validationErrors } = validateForm(formData, getVisibleQuestions());
-
-    console.log('Form Validation Status:', { isValid, errors: validationErrors });
-    console.log('Submitted Form Data:', formData);
-
+  
     if (!isValid) {
-      console.log('Form Validation Failed:', validationErrors);
       setErrors(validationErrors);
       return;
     }
-
+  
     setIsSubmitting(true);
-    console.log('Starting form submission...');
-
+  
     try {
-      console.log('Sending request to server...');
-      const response = await fetch('http://localhost:3001/submit-form', {
+      const response = await fetch('/api/submit-form', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
-
-      const data = await response.json();
-      console.log('Server Response:', data);
-
-      if (data.success) {
-        console.log('Form submitted successfully!', {
-          timestamp: new Date().toISOString(),
-          formData,
-          response: data
-        });
-        alert('Form submitted successfully!');
-        setFormData({});
-        setStep(0);
-        setErrors({});
-      } else {
-        throw new Error(data.message || 'Form submission failed');
+  
+      
+      const data = await response.json();  
+  
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP error! Status: ${response.status}`);
       }
+  
+
+      alert('Form submitted successfully!');
+      setFormData({});
+      setStep(0);
+      setErrors({});
     } catch (error) {
-      console.error('Form Submission Error:', {
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        formData
-      });
-      alert(`Error submitting form: ${error.message}`);
+      console.error('Form submission error:', error);
+      alert(`Error submitting form: ${error.message || 'Something went wrong'}`);
     } finally {
       setIsSubmitting(false);
-      console.log('Form submission process completed');
     }
   };
+  
   if (!currentQuestion) return null;
 
   return (
