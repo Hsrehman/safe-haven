@@ -9,7 +9,7 @@ export default function Header() {
     <header className="bg-white shadow-md py-4 px-8 sticky top-0 z-50">
       <nav className="flex justify-between items-center max-w-7xl mx-auto">
         <div className="text-2xl font-bold">
-          <Link href="/">
+          <Link href="/Safe Haven" >
             <a className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700">
               Safe Haven
             </a>
