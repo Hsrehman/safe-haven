@@ -1,14 +1,8 @@
 {
-  
-    "dependencies": {
-      "bcrypt": "^5.1.1",
-      
-          "compilerOptions": {
-        "paths": {
-          "@/*": ["./*"]
-        }
-      }
-    },
-  
-  
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
 }
