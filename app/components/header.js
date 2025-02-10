@@ -30,6 +30,7 @@ export default function Header() {
           <li><a href="/about" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">About</a></li>
           <li><a href="/services" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Services</a></li>
           <li><a href="/contact" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Contact</a></li>
+          <li><a href="/login" className="block py-2 text-gray-700 hover:text-indigo-600">Login</a></li>
         </ul>
 
         {/* Mobile menu */}
@@ -41,6 +42,7 @@ export default function Header() {
               <li><a href="/about" className="block py-2 text-gray-700 hover:text-indigo-600">About</a></li>
               <li><a href="/services" className="block py-2 text-gray-700 hover:text-indigo-600">Services</a></li>
               <li><a href="/contact" className="block py-2 text-gray-700 hover:text-indigo-600">Contact</a></li>
+              <li><a href="/login" className="block py-2 text-gray-700 hover:text-indigo-600">Login</a></li>
             </ul>
           </div>
         )}

@@ -1,273 +1,86 @@
-function openModal(modalId) {
-    document.getElementById(modalId).classList.add('active');
-}
+'use client';
+import { useState } from 'react';
 
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
-}
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-// Close modal when clicking outside
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.classList.remove('active');
-    }
-}
-
-// Handle login form submission
-document.getElementById('loginForm').addEventListener('submit', function(e) {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-    
-    // Add your login logic here
-    console.log('Login attempt:3', { email, password });
-    // script.js
+    setError('');
+    setIsLoading(true);
 
-    // Validation helper functions
-    const validateEmail = (email) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    };
-    
-    const validatePassword = (password) => {
-        // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        return passwordRegex.test(password);
-    };
-    
-    const validateName = (name) => {
-        // At least 2 characters, only letters and spaces
-        const nameRegex = /^[A-Za-z\s]{2,}$/;
-        return nameRegex.test(name);
-    };
-    
-    // Show error message
-    const showError = (inputElement, message) => {
-        const errorDiv = inputElement.nextElementSibling;
-        if (!errorDiv || !errorDiv.classList.contains('error-message')) {
-            const div = document.createElement('div');
-            div.className = 'error-message text-red-500 text-sm mt-1';
-            div.textContent = message;
-            inputElement.parentNode.insertBefore(div, inputElement.nextSibling);
-        } else {
-            errorDiv.textContent = message;
-        }
-        inputElement.classList.add('border-red-500');
-    };
-    
-    // Clear error message
-    const clearError = (inputElement) => {
-        const errorDiv = inputElement.nextElementSibling;
-        if (errorDiv && errorDiv.classList.contains('error-message')) {
-            errorDiv.remove();
-        }
-        inputElement.classList.remove('border-red-500');
-    };
-    
-    // Real-time validation for login form
-    document.getElementById('login-email').addEventListener('input', function(e) {
-        if (!validateEmail(this.value)) {
-            showError(this, 'Please enter a valid email address');
-        } else {
-            clearError(this);
-        }
-    });
-    
-    document.getElementById('login-password').addEventListener('input', function(e) {
-        if (this.value.length < 8) {
-            showError(this, 'Password must be at least 8 characters long');
-        } else {
-            clearError(this);
-        }
-    });
-    
-    // Real-time validation for signup form
-    document.getElementById('signup-name').addEventListener('input', function(e) {
-        if (!validateName(this.value)) {
-            showError(this, 'Name must contain only letters and be at least 2 characters long');
-        } else {
-            clearError(this);
-        }
-    });
-    
-    document.getElementById('signup-email').addEventListener('input', function(e) {
-        if (!validateEmail(this.value)) {
-            showError(this, 'Please enter a valid email address');
-        } else {
-            clearError(this);
-        }
-    });
-    
-    document.getElementById('signup-password').addEventListener('input', function(e) {
-        if (!validatePassword(this.value)) {
-            showError(this, 'Password must contain at least 8 characters, including uppercase, lowercase, number and special character');
-        } else {
-            clearError(this);
-        }
-    });
-    
-    document.getElementById('signup-confirm-password').addEventListener('input', function(e) {
-        const password = document.getElementById('signup-password').value;
-        if (this.value !== password) {
-            showError(this, 'Passwords do not match');
-        } else {
-            clearError(this);
-        }
-    });
-    
-    // Handle login form submission
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const email = document.getElementById('login-email');
-        const password = document.getElementById('login-password');
-        let isValid = true;
-    
-        // Clear previous errors
-        clearError(email);
-        clearError(password);
-    
-        // Validate email
-        if (!validateEmail(email.value)) {
-            showError(email, 'Please enter a valid email address');
-            isValid = false;
-        }
-    
-        // Validate password
-        if (password.value.length < 8) {
-            showError(password, 'Password must be at least 8 characters long');
-            isValid = false;
-        }
-    
-        if (isValid) {
-            // Add your login logic here
-            console.log('Login attempt:', { email: email.value, password: password.value });
-            closeModal('loginModal');
-            
-            // Reset form
-            this.reset();
-        }
-    });
-    
-    // Handle signup form submission
-    document.getElementById('signupForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const name = document.getElementById('signup-name');
-        const email = document.getElementById('signup-email');
-        const password = document.getElementById('signup-password');
-        const confirmPassword = document.getElementById('signup-confirm-password');
-        let isValid = true;
-    
-        // Clear previous errors
-        clearError(name);
-        clearError(email);
-        clearError(password);
-        clearError(confirmPassword);
-    
-        // Validate name
-        if (!validateName(name.value)) {
-            showError(name, 'Name must contain only letters and be at least 2 characters long');
-            isValid = false;
-        }
-    
-        // Validate email
-        if (!validateEmail(email.value)) {
-            showError(email, 'Please enter a valid email address');
-            isValid = false;
-        }
-    
-        // Validate password
-        if (!validatePassword(password.value)) {
-            showError(password, 'Password must contain at least 8 characters, including uppercase, lowercase, number and special character');
-            isValid = false;
-        }
-    
-        // Validate confirm password
-        if (password.value !== confirmPassword.value) {
-            showError(confirmPassword, 'Passwords do not match');
-            isValid = false;
-        }
-    
-        if (isValid) {
-            // Add your signup logic here
-            console.log('Signup attempt:', {
-                name: name.value,
-                email: email.value,
-                password: password.value
-            });
-            closeModal('signupModal');
-            
-            // Reset form
-            this.reset();
-        }
-    });
-    
-    // Close the modal after submission
-    closeModal('loginModal');
-});
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'login',
+          email,
+          password,
+        }),
+      });
 
-// Handle signup form submission
-document.getElementById('signupForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const name = document.getElementById('signup-name').value;
-    const email = document.getElementById('signup-email').value;
-    const password = document.getElementById('signup-password').value;
-    const confirmPassword = document.getElementById('signup-confirm-password').value;
+      const data = await response.json();
 
-    if (password !== confirmPassword) {
-        alert('Passwords do not match!');
-        return;
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Handle successful login (e.g., redirect or store token)
+      alert('Login successful!');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Add your signup logic here
-    console.log('Signup attempt:', { name, email, password });
+  };
 
-    // Add to script.js
-
-    async function registerUser(formData) {
-        try {
-            const response = await fetch('/register.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    fullName: formData.name,
-                    email: formData.email,
-                    password: formData.password
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                alert('Registration successful! Please check your email to verify your account.');
-                closeModal('signupModal');
-            } else {
-                alert(data.message);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('An error occurred during registration');
-        }
-    }
-
-    // Update the signup form submission handler
-    document.getElementById('signupForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        if (validateForm()) {
-            const formData = {
-                name: document.getElementById('signup-name').value,
-                email: document.getElementById('signup-email').value,
-                password: document.getElementById('signup-password').value
-            };
-            
-            await registerUser(formData);
-        }
-    });
-    
-    // Close the modal after submission
-    closeModal('signupModal');
-});
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
+        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        <form onSubmit={handleLogin}>
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div className="mb-6">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+      </div>
+    </main>
+  );
+}
