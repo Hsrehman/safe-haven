@@ -283,40 +283,80 @@ export default function FormPage() {
   const handleSubmit = async () => {
     const { isValid, errors: validationErrors } = validateForm(formData, getVisibleQuestions());
   
+    // Initial form validation logging
+    console.group('Form Submission Process');
+    console.log('[Form Data]:', {
+      ...formData,
+      totalQuestions: getVisibleQuestions().length,
+      submittedAt: new Date().toISOString()
+    });
+    console.log('[Validation Status]:', { isValid, errors: validationErrors });
+  
     if (!isValid) {
+      console.error('[Validation Failed]:', validationErrors);
+      console.groupEnd();
       setErrors(validationErrors);
       return;
     }
   
     setIsSubmitting(true);
+    console.log('[Starting] Form submission process...');
   
     try {
+      console.log('[Request] Sending to API...');
+      const startTime = performance.now();
+  
       const response = await fetch('/api/submit-form', {
         method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'X-Request-Time': new Date().toISOString()
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData)
       });
   
+      const endTime = performance.now();
+      const requestDuration = endTime - startTime;
+  
+      const data = await response.json();
       
-      const data = await response.json();  
+      console.log('[Network Information]:', {
+        endpoint: '/api/submit-form',
+        requestDuration: `${requestDuration.toFixed(2)}ms`,
+        status: response.status,
+        statusText: response.statusText,
+        headers: {
+          contentType: response.headers.get('content-type'),
+          server: response.headers.get('server')
+        }
+      });
   
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! Status: ${response.status}`);
+      console.log('[Server Response]:', data);
+  
+      if (data.success) {
+        console.log('[Success] Form submitted successfully!', {
+          timestamp: new Date().toISOString(),
+          submissionId: data.id,
+          response: data
+        });
+        alert('Form submitted successfully!');
+        setFormData({});
+        setStep(0);
+        setErrors({});
+      } else {
+        throw new Error(data.message || 'Form submission failed');
       }
-  
-
-      alert('Form submitted successfully!');
-      setFormData({});
-      setStep(0);
-      setErrors({});
     } catch (error) {
-      console.error('Form submission error:', error);
-      alert(`Error submitting form: ${error.message || 'Something went wrong'}`);
+      console.error('[Error] Form Submission Failed:', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        formData
+      });
+      alert(`Error submitting form: ${error.message}`);
     } finally {
       setIsSubmitting(false);
+      console.log('[Completed] Form submission process');
+      console.groupEnd();
     }
   };
   
