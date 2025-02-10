@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState } from 'react';
 
 export default function Header() {
@@ -8,12 +9,13 @@ export default function Header() {
     <header className="bg-white shadow-md py-4 px-8 sticky top-0 z-50">
       <nav className="flex justify-between items-center max-w-7xl mx-auto">
         <div className="text-2xl font-bold">
-          <a href="/" className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700">
-            Safe Haven
-          </a>
+          <Link href="/">
+            <a className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700">
+              Safe Haven
+            </a>
+          </Link>
         </div>
         
-
         <button 
           className="md:hidden"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -25,24 +27,24 @@ export default function Header() {
 
         {/* Desktop menu */}
         <ul className="hidden md:flex space-x-8">
-          <li><a href="/" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Home</a></li>
-          <li><a href="/form" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Get Help</a></li>
-          <li><a href="/about" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">About</a></li>
-          <li><a href="/services" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Services</a></li>
-          <li><a href="/contact" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Contact</a></li>
-          <li><a href="/login" className="block py-2 text-gray-700 hover:text-indigo-600">Login</a></li>
+          <li><Link href="/"><a className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Home</a></Link></li>
+          <li><Link href="/form"><a className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Get Help</a></Link></li>
+          <li><Link href="/about"><a className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">About</a></Link></li>
+          <li><Link href="/services"><a className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Services</a></Link></li>
+          <li><Link href="/contact"><a className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Contact</a></Link></li>
+          <li><Link href="/login"><a className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Login</a></Link></li>
         </ul>
 
         {/* Mobile menu */}
         {isMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-white shadow-lg md:hidden">
-            <ul className="px-4 py-2">
-              <li><a href="/" className="block py-2 text-gray-700 hover:text-indigo-600">Home</a></li>
-              <li><a href="/form" className="block py-2 text-gray-700 hover:text-indigo-600">Get Help</a></li>
-              <li><a href="/about" className="block py-2 text-gray-700 hover:text-indigo-600">About</a></li>
-              <li><a href="/services" className="block py-2 text-gray-700 hover:text-indigo-600">Services</a></li>
-              <li><a href="/contact" className="block py-2 text-gray-700 hover:text-indigo-600">Contact</a></li>
-              <li><a href="/login" className="block py-2 text-gray-700 hover:text-indigo-600">Login</a></li>
+            <ul>
+              <li><Link href="/"><a className="block py-2 text-gray-700 hover:text-indigo-600">Home</a></Link></li>
+              <li><Link href="/form"><a className="block py-2 text-gray-700 hover:text-indigo-600">Get Help</a></Link></li>
+              <li><Link href="/about"><a className="block py-2 text-gray-700 hover:text-indigo-600">About</a></Link></li>
+              <li><Link href="/services"><a className="block py-2 text-gray-700 hover:text-indigo-600">Services</a></Link></li>
+              <li><Link href="/contact"><a className="block py-2 text-gray-700 hover:text-indigo-600">Contact</a></Link></li>
+              <li><Link href="/login"><a className="block py-2 text-gray-700 hover:text-indigo-600">Login</a></Link></li>
             </ul>
           </div>
         )}
