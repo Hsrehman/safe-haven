@@ -1,6 +1,24 @@
 'use client';
 import { useState } from 'react';
 
+/**
+ * Renders a login page component with email and password form.
+ * @component
+ * @returns {JSX.Element} A login form with email and password inputs
+ * @example
+ * return (
+ *   <LoginPage />
+ * )
+ * 
+ * @state {string} email - Stores the user's email input
+ * @state {string} password - Stores the user's password input
+ * @state {string} error - Stores error messages from failed login attempts
+ * @state {boolean} isLoading - Tracks the loading state during form submission
+ * 
+ * @function handleLogin - Async function that handles form submission
+ * @param {Event} e - The form submission event
+ * @throws {Error} When the login request fails
+ */
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
