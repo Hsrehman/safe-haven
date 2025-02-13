@@ -374,7 +374,7 @@ export default function FormPage() {
             Find Your Safe Space
           </h1>
           <p className="mt-4 text-lg text-gray-600">
-            We're here to help you find the right shelter for your needs
+            We are here to help you find the right shelter for your needs
           </p>
         </motion.div>
 

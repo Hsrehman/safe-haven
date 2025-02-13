@@ -1,3 +1,4 @@
+
 .login-button {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 35px;
@@ -8,12 +9,12 @@
     cursor: pointer;     
     padding: 10px 20px;  
     border: none;        
-     position: fixed;  
-     top: 20px;        
-     right: 10px;      
+    position: fixed;  
+    top: 20px;        
+    right: 10px;      
 }
 
-#logo{
+#logo {
     color: linear-gradient(to bottom, #166880, #05262D);
     font-family: Arial, Helvetica, sans-serif;
     font-size: 35px;
@@ -31,14 +32,14 @@
     padding-top: 100px;
 }
 
-#Top-Text{
+#Top-Text {
     color: linear-gradient(to bottom, #166880, #05262D);
     font-family: Arial, Helvetica, sans-serif;
     font-size: 70px;
     text-align: center;  
 }
 
-#Middle-Text{
+#Middle-Text {
     color: linear-gradient(to bottom, #166880, #05262D);
     font-family: Arial, Helvetica, sans-serif;
     font-size: 50px;
@@ -46,8 +47,7 @@
     margin-top: 80px;
 }
 
-
-#Bottom-Text{
+#Bottom-Text {
     color: linear-gradient(to bottom, #166880, #05262D);
     font-family: Arial, Helvetica, sans-serif;
     font-size: 40px;
@@ -98,8 +98,6 @@
     justify-content: center; 
 }
 
-
-
 .Shelter-Button {
     background-color: #1e40af;
     color: white;
@@ -119,8 +117,7 @@
     justify-content: center; 
 }
 
-
-#Foodbank-Text{
+#Foodbank-Text {
     color: linear-gradient(to bottom, #166880, #05262D);
     font-family: Arial, Helvetica, sans-serif;
     font-size: 45px;
@@ -128,7 +125,7 @@
     margin-top: 300px;
 }
 
-#Shelters-Text{
+#Shelters-Text {
     color: linear-gradient(to bottom, #166880, #05262D);
     font-family: Arial, Helvetica, sans-serif;
     font-size: 45px;
