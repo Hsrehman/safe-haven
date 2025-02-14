@@ -1,4 +1,5 @@
 import { color } from "framer-motion";
+import Link from 'next/link';
 
 export default function Home() {
   const styles = {
@@ -111,7 +112,9 @@ export default function Home() {
           <p style={styles.cardText}>
             Need a meal or groceries to get through the day? Use this tool to locate food banks near you offering free meals, pantry items, and support. No matter your situation, there's a place ready to help. Let's find the nourishment and care you deserve!
           </p>
-          <button style={styles.buttonDark}>Get a Meal</button>
+          <Link href="/find-a-meal">
+            <button style={styles.buttonDark}>Get a Meal</button>
+          </Link>
         </div>
       </div>
     </main>
