@@ -1,6 +1,10 @@
+'use client';
+import { useRouter } from 'next/navigation';
 import { color } from "framer-motion";
 
+
 export default function Home() {
+  const router = useRouter(); 
   const styles = {
     mainContainer: {
       minHeight: '100vh',
@@ -103,7 +107,12 @@ export default function Home() {
           <p style={styles.cardText}>
             Looking for a safe place to stay? Use this tool to find nearby shelters offering a warm bed and support. Whether you need emergency housing or a temporary place to rest, we're here to help you find the right option quickly and easily. Your safe haven is just a few clicks away!
           </p>
-          <button style={styles.buttonLight}>Find a Shelter</button>
+          <button
+            style={styles.buttonLight}
+            onClick={() => router.push("/pages/form")} 
+          >
+            Find a Shelter
+          </button>
         </div>
 
         <div style={styles.lightCard}>
