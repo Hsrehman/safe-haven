@@ -1,5 +1,5 @@
 import React from 'react';
-import LondonFoodBankMap from '@/components/LondonFoodBankMap';
+import LondonFoodBankMap from '../../components/LondonFoodBankMap.js';
 
 export default function FindAMeal() {
   return (
