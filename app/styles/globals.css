@@ -19,3 +19,60 @@ body {
   color: var(--foreground);
   background: var(--background);
 }
+
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+/* Style the heading */
+h1 {
+  margin-bottom: 20px;
+  font-size: 2rem;
+  text-align: center;
+  color: #2c3e50;
+}
+
+
+
+select:focus {
+  border-color: #3498db;
+}
+
+/* Style the map container */
+.map-container {
+  margin-top: 20px;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Add a hover effect to the dropdown */
+select:hover {
+  background-color: #f1f1f1;
+}
+
+/* Style the InfoWindow content */
+.info-window {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.info-window h4 {
+  margin-bottom: 5px;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+.info-window a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.info-window a:hover {
+  text-decoration: underline;
+}

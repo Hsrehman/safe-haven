@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {}
-
-export default nextConfig
+const nextConfig = {
+    transpilePackages: ['@react-google-maps/api'],
+  };
+  
+  export default nextConfig;
