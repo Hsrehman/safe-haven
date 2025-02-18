@@ -1,36 +1,45 @@
-'use client';
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { validateField, validateForm, OPTIONAL_FIELDS } from '@/app/utils/formValidation';
-import { formQuestions } from '@/app/utils/formQuestions';
-import { ClipboardList, ArrowRight, ArrowLeft, Send } from 'lucide-react';
-
+"use client";
+import { formQuestions } from "@/app/utils/formQuestions";
+import {
+  OPTIONAL_FIELDS,
+  validateField,
+  validateForm,
+} from "@/app/utils/formValidation";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, ClipboardList, Send } from "lucide-react";
+import { useState } from "react";
 
 const fadeIn = {
   initial: { opacity: 0, x: 20 },
   animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -20 }
+  exit: { opacity: 0, x: -20 },
 };
 
 const slideUp = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 20 }
+  exit: { opacity: 0, y: 20 },
 };
 
 const shouldShowField = (field, formData) => {
   const conditions = {
-    womenOnly: () => ['Female', 'Non-binary', 'Other', 'Prefer not to say'].includes(formData.gender),
-    lgbtqFriendly: () => formData.gender !== 'Prefer not to say',
-    children: () => ['With family', 'With a partner'].includes(formData.groupType),
-    childrenCount: () => ['With family', 'With a partner'].includes(formData.groupType),
-    curfew: () => formData.shelterType === 'Long-Term',
-    smoking: () => formData.shelterType === 'Long-Term',
-    communalLiving: () => formData.shelterType === 'Long-Term',
+    womenOnly: () =>
+      ["Female", "Non-binary", "Other", "Prefer not to say"].includes(
+        formData.gender
+      ),
+    lgbtqFriendly: () => formData.gender !== "Prefer not to say",
+    children: () =>
+      ["With family", "With a partner"].includes(formData.groupType),
+    childrenCount: () =>
+      ["With family", "With a partner"].includes(formData.groupType),
+    curfew: () => formData.shelterType === "Long-Term",
+    smoking: () => formData.shelterType === "Long-Term",
+    communalLiving: () => formData.shelterType === "Long-Term",
     mentalHealth: () => Boolean(formData.medicalConditions),
-    socialServices: () => formData.groupType !== 'Alone' || formData.financialAssistance === 'Yes',
-    foodAssistance: () => formData.shelterType === 'Tonight',
-    wheelchair: () => Boolean(formData.medicalConditions)
+    socialServices: () =>
+      formData.groupType !== "Alone" || formData.financialAssistance === "Yes",
+    foodAssistance: () => formData.shelterType === "Tonight",
+    wheelchair: () => Boolean(formData.medicalConditions),
   };
 
   return conditions[field.id] ? conditions[field.id]() : true;
@@ -51,20 +60,29 @@ const ErrorMessage = ({ error }) => (
   </AnimatePresence>
 );
 
-const FormField = ({ field, value, onChange, onBlur, error, formData, handleChange }) => {
-  const baseStyle = "w-full px-5 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300 bg-gray-50 text-gray-800";
+const FormField = ({
+  field,
+  value,
+  onChange,
+  onBlur,
+  error,
+  formData,
+  handleChange,
+}) => {
+  const baseStyle =
+    "w-full px-5 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3B82C4] focus:border-[#1A5276] transition-all duration-300 bg-gray-50 text-[#1F3A52]";
   const errorStyle = "border-red-500 bg-red-50";
   const validStyle = "border-gray-200 hover:border-purple-300";
-  
+
   const fieldStyle = `${baseStyle} ${error ? errorStyle : validStyle}`;
 
   switch (field.type) {
-    case 'text':
-    case 'email':
-    case 'tel':
-    case 'date':
-    case 'number':
-    case 'address':
+    case "text":
+    case "email":
+    case "tel":
+    case "date":
+    case "number":
+    case "address":
       return (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -74,15 +92,15 @@ const FormField = ({ field, value, onChange, onBlur, error, formData, handleChan
           <input
             type={field.type}
             placeholder={field.placeholder}
-            value={value || ''}
-            onChange={e => onChange(field.id, e.target.value)}
+            value={value || ""}
+            onChange={(e) => onChange(field.id, e.target.value)}
             onBlur={() => onBlur(field.id)}
             className={`${fieldStyle} transform transition-all duration-300 hover:scale-[1.01]`}
           />
         </motion.div>
       );
 
-    case 'select':
+    case "select":
       return (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -90,20 +108,22 @@ const FormField = ({ field, value, onChange, onBlur, error, formData, handleChan
           className="space-y-2"
         >
           <select
-            value={value || ''}
-            onChange={e => onChange(field.id, e.target.value)}
+            value={value || ""}
+            onChange={(e) => onChange(field.id, e.target.value)}
             onBlur={() => onBlur(field.id)}
             className={`${fieldStyle} transform transition-all duration-300 hover:scale-[1.01]`}
           >
             <option value="">Select...</option>
-            {field.options.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
+            {field.options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
             ))}
           </select>
         </motion.div>
       );
 
-    case 'radio':
+    case "radio":
       return (
         <motion.div className="space-y-3">
           {field.options.map((opt, index) => (
@@ -118,9 +138,9 @@ const FormField = ({ field, value, onChange, onBlur, error, formData, handleChan
                 type="radio"
                 value={opt}
                 checked={value === opt}
-                onChange={e => onChange(field.id, e.target.value)}
+                onChange={(e) => onChange(field.id, e.target.value)}
                 onBlur={() => onBlur(field.id)}
-                className="w-5 h-5 text-purple-600"
+                className="w-5 h-5 text-[#3B82C4]"
               />
               <span className="ml-3 text-gray-700">{opt}</span>
             </motion.label>
@@ -128,7 +148,7 @@ const FormField = ({ field, value, onChange, onBlur, error, formData, handleChan
         </motion.div>
       );
 
-    case 'checkbox':
+    case "checkbox":
       return (
         <motion.label
           initial={{ opacity: 0, y: 10 }}
@@ -138,15 +158,15 @@ const FormField = ({ field, value, onChange, onBlur, error, formData, handleChan
           <input
             type="checkbox"
             checked={value || false}
-            onChange={e => onChange(field.id, e.target.checked)}
+            onChange={(e) => onChange(field.id, e.target.checked)}
             onBlur={() => onBlur(field.id)}
-            className="w-5 h-5 text-purple-600"
+            className="w-5 h-5 text-[#3B82C4]"
           />
           <span className="ml-3 text-gray-700">{field.label}</span>
         </motion.label>
       );
 
-    case 'textarea':
+    case "textarea":
       return (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -155,18 +175,18 @@ const FormField = ({ field, value, onChange, onBlur, error, formData, handleChan
         >
           <textarea
             placeholder={field.placeholder}
-            value={value || ''}
-            onChange={e => onChange(field.id, e.target.value)}
+            value={value || ""}
+            onChange={(e) => onChange(field.id, e.target.value)}
             onBlur={() => onBlur(field.id)}
             className={`${fieldStyle} h-32 transform transition-all duration-300 hover:scale-[1.01]`}
           />
         </motion.div>
       );
 
-    case 'compound':
-      const radioValue = formData?.[field.subQuestions[0].id] || '';
-      const numberValue = formData?.[field.subQuestions[1].id] || '';
-      
+    case "compound":
+      const radioValue = formData?.[field.subQuestions[0].id] || "";
+      const numberValue = formData?.[field.subQuestions[1].id] || "";
+
       return (
         <motion.div className="space-y-4">
           <div className="space-y-3">
@@ -182,7 +202,9 @@ const FormField = ({ field, value, onChange, onBlur, error, formData, handleChan
                   type="radio"
                   value={opt}
                   checked={radioValue === opt}
-                  onChange={e => handleChange(field.subQuestions[0].id, e.target.value)}
+                  onChange={(e) =>
+                    handleChange(field.subQuestions[0].id, e.target.value)
+                  }
                   className="w-5 h-5 text-purple-600"
                 />
                 <span className="ml-3 text-gray-700">{opt}</span>
@@ -190,10 +212,10 @@ const FormField = ({ field, value, onChange, onBlur, error, formData, handleChan
             ))}
           </div>
           <AnimatePresence>
-            {radioValue === 'Yes' && (
+            {radioValue === "Yes" && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
               >
                 <input
@@ -202,7 +224,9 @@ const FormField = ({ field, value, onChange, onBlur, error, formData, handleChan
                   max="20"
                   placeholder={field.subQuestions[1].placeholder}
                   value={numberValue}
-                  onChange={e => handleChange(field.subQuestions[1].id, e.target.value)}
+                  onChange={(e) =>
+                    handleChange(field.subQuestions[1].id, e.target.value)
+                  }
                   className={`${fieldStyle} transform transition-all duration-300 hover:scale-[1.01]`}
                 />
               </motion.div>
@@ -221,145 +245,151 @@ export default function FormPage() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
-  const getVisibleQuestions = () => formQuestions.filter(q => shouldShowField(q, formData));
+  const getVisibleQuestions = () =>
+    formQuestions.filter((q) => shouldShowField(q, formData));
   const currentQuestion = getVisibleQuestions()[step];
 
   const handleChange = (id, value) => {
-    setFormData(prev => ({ ...prev, [id]: value }));
-    
-    const field = formQuestions.find(q => q.id === id);
+    setFormData((prev) => ({ ...prev, [id]: value }));
+
+    const field = formQuestions.find((q) => q.id === id);
     if (field) {
       const validation = validateField(field, value);
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [id]: validation.isValid ? null : validation.error
+        [id]: validation.isValid ? null : validation.error,
       }));
     }
   };
 
   const handleBlur = (id) => {
-    const field = formQuestions.find(q => q.id === id);
+    const field = formQuestions.find((q) => q.id === id);
     if (field) {
       const validation = validateField(field, formData[id]);
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [id]: validation.isValid ? null : validation.error
+        [id]: validation.isValid ? null : validation.error,
       }));
     }
   };
 
   const handleNext = () => {
-    const validation = validateField(currentQuestion, formData[currentQuestion.id], formData);
-    
+    const validation = validateField(
+      currentQuestion,
+      formData[currentQuestion.id],
+      formData
+    );
+
     if (!validation.isValid) {
-      if (currentQuestion.type === 'compound') {
+      if (currentQuestion.type === "compound") {
         const hasChildrenValue = formData[currentQuestion.subQuestions[0].id];
         if (!hasChildrenValue) {
-          setErrors(prev => ({
+          setErrors((prev) => ({
             ...prev,
-            [currentQuestion.subQuestions[0].id]: validation.error
+            [currentQuestion.subQuestions[0].id]: validation.error,
           }));
-        } else if (hasChildrenValue === 'Yes') {
-          setErrors(prev => ({
+        } else if (hasChildrenValue === "Yes") {
+          setErrors((prev) => ({
             ...prev,
-            [currentQuestion.subQuestions[1].id]: validation.error
+            [currentQuestion.subQuestions[1].id]: validation.error,
           }));
         }
       } else {
-        setErrors(prev => ({
+        setErrors((prev) => ({
           ...prev,
-          [currentQuestion.id]: validation.error
+          [currentQuestion.id]: validation.error,
         }));
       }
       return;
     }
 
     if (step < getVisibleQuestions().length - 1) {
-      setStep(s => s + 1);
+      setStep((s) => s + 1);
     }
   };
 
   const handleSubmit = async () => {
-    const { isValid, errors: validationErrors } = validateForm(formData, getVisibleQuestions());
-  
-    // Initial form validation logging
-    console.group('Form Submission Process');
-    console.log('[Form Data]:', {
+    const { isValid, errors: validationErrors } = validateForm(
+      formData,
+      getVisibleQuestions()
+    );
+
+    console.group("Form Submission Process");
+    console.log("[Form Data]:", {
       ...formData,
       totalQuestions: getVisibleQuestions().length,
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
     });
-    console.log('[Validation Status]:', { isValid, errors: validationErrors });
-  
+    console.log("[Validation Status]:", { isValid, errors: validationErrors });
+
     if (!isValid) {
-      console.error('[Validation Failed]:', validationErrors);
+      console.error("[Validation Failed]:", validationErrors);
       console.groupEnd();
       setErrors(validationErrors);
       return;
     }
-  
+
     setIsSubmitting(true);
-    console.log('[Starting] Form submission process...');
-  
+    console.log("[Starting] Form submission process...");
+
     try {
-      console.log('[Request] Sending to API...');
+      console.log("[Request] Sending to API...");
       const startTime = performance.now();
-  
-      const response = await fetch('/api/submit-form', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Request-Time': new Date().toISOString()
+
+      const response = await fetch("/api/submit-form", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Time": new Date().toISOString(),
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
-  
+
       const endTime = performance.now();
       const requestDuration = endTime - startTime;
-  
+
       const data = await response.json();
-      
-      console.log('[Network Information]:', {
-        endpoint: '/api/submit-form',
+
+      console.log("[Network Information]:", {
+        endpoint: "/api/submit-form",
         requestDuration: `${requestDuration.toFixed(2)}ms`,
         status: response.status,
         statusText: response.statusText,
         headers: {
-          contentType: response.headers.get('content-type'),
-          server: response.headers.get('server')
-        }
+          contentType: response.headers.get("content-type"),
+          server: response.headers.get("server"),
+        },
       });
-  
-      console.log('[Server Response]:', data);
-  
+
+      console.log("[Server Response]:", data);
+
       if (data.success) {
-        console.log('[Success] Form submitted successfully!', {
+        console.log("[Success] Form submitted successfully!", {
           timestamp: new Date().toISOString(),
           submissionId: data.id,
-          response: data
+          response: data,
         });
-        alert('Form submitted successfully!');
+        alert("Form submitted successfully!");
         setFormData({});
         setStep(0);
         setErrors({});
       } else {
-        throw new Error(data.message || 'Form submission failed');
+        throw new Error(data.message || "Form submission failed");
       }
     } catch (error) {
-      console.error('[Error] Form Submission Failed:', {
+      console.error("[Error] Form Submission Failed:", {
         error: error.message,
         timestamp: new Date().toISOString(),
-        formData
+        formData,
       });
       alert(`Error submitting form: ${error.message}`);
     } finally {
       setIsSubmitting(false);
-      console.log('[Completed] Form submission process');
+      console.log("[Completed] Form submission process");
       console.groupEnd();
     }
   };
-  
+
   if (!currentQuestion) return null;
 
   return (
@@ -370,7 +400,7 @@ export default function FormPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700">
+          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#3B82C4] to-[#1A5276]">
             Find Your Safe Space
           </h1>
           <p className="mt-4 text-lg text-gray-600">
@@ -383,31 +413,39 @@ export default function FormPage() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-2xl mx-auto"
         >
-          {/* Form Card */}
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            {/* Progress Header */}
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-8 py-4 border-b border-gray-100">
-              <div className="flex items-center space-x-2 text-indigo-700">
+              <div className="flex items-center space-x-2 text-[#3B82C4]">
                 <ClipboardList className="w-5 h-5" />
                 <span className="font-medium">Application Progress</span>
               </div>
               <div className="mt-3">
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2 bg-[#D3E0EA] rounded-full overflow-hidden">
                   <motion.div
-                    className="h-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full"
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${((step + 1) / getVisibleQuestions().length) * 100}%` }}
+                    className="h-2 bg-gradient-to-r from-[#3B82C4] to-[#1A5276] rounded-full"
+                    initial={{ width: "0%" }}
+                    animate={{
+                      width: `${
+                        ((step + 1) / getVisibleQuestions().length) * 100
+                      }%`,
+                    }}
                     transition={{ duration: 0.5 }}
                   />
                 </div>
                 <div className="mt-2 flex justify-between text-sm text-gray-600">
-                  <span className="font-medium">Question {step + 1} of {getVisibleQuestions().length}</span>
-                  <span className="font-medium">{Math.round(((step + 1) / getVisibleQuestions().length) * 100)}% completed</span>
+                  <span className="font-medium">
+                    Question {step + 1} of {getVisibleQuestions().length}
+                  </span>
+                  <span className="font-medium">
+                    {Math.round(
+                      ((step + 1) / getVisibleQuestions().length) * 100
+                    )}
+                    % completed
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Question Section */}
             <div className="p-8">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -430,7 +468,7 @@ export default function FormPage() {
                       </motion.span>
                     )}
                   </h2>
-                  
+
                   <FormField
                     field={currentQuestion}
                     value={formData[currentQuestion.id]}
@@ -444,21 +482,21 @@ export default function FormPage() {
                 </motion.div>
               </AnimatePresence>
 
-              {/* Navigation Buttons */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex justify-between mt-10 pt-6 border-t border-gray-100"
               >
                 <motion.button
-                  onClick={() => setStep(s => s - 1)}
+                  onClick={() => setStep((s) => s - 1)}
                   disabled={step === 0}
                   whileHover={step !== 0 ? { scale: 1.02, x: -5 } : {}}
                   whileTap={step !== 0 ? { scale: 0.98 } : {}}
                   className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 
-                    ${step === 0
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
+                    ${
+                      step === 0
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
                     }`}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -471,8 +509,9 @@ export default function FormPage() {
                     disabled={isSubmitting}
                     whileHover={{ scale: 1.02, x: 5 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex items-center px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 
-                      text-white rounded-xl font-medium hover:shadow-lg transition-all duration-200"
+                    className={`flex items-center px-8 py-3 bg-gradient-to-r from-[#3B82C4] to-[#1A5276] 
+                      text-white rounded-xl font-medium hover:from-[#1F6A91] hover:to-[#0C374A] hover:shadow-lg transition-all duration-200
+                      ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {isSubmitting ? (
                       <motion.span
@@ -480,9 +519,25 @@ export default function FormPage() {
                         animate={{ opacity: 1 }}
                         className="flex items-center"
                       >
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         Submitting...
                       </motion.span>
@@ -498,8 +553,8 @@ export default function FormPage() {
                     onClick={handleNext}
                     whileHover={{ scale: 1.02, x: 5 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex items-center px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 
-                      text-white rounded-xl font-medium hover:shadow-lg transition-all duration-200"
+                    className="flex items-center px-8 py-3 bg-gradient-to-r from-[#3B82C4] to-[#1A5276] 
+                    text-white rounded-xl font-medium hover:from-[#1F6A91] hover:to-[#0C374A] hover:shadow-lg transition-all duration-200"
                   >
                     <span>Next</span>
                     <ArrowRight className="w-4 h-4 ml-2" />
