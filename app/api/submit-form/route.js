@@ -9,7 +9,7 @@ export async function POST(request) {
     const client = await clientPromise;
     const db = client.db('safe-haven');
 
-    const result = await db.collection('submissions').insertOne({
+    const result = await db.collection('user-data').insertOne({
       ...formData,
       submittedAt: new Date(),
       status: 'submitted',
@@ -27,9 +27,9 @@ export async function POST(request) {
       timestamp: new Date().toISOString(),
       processingTime: (performance.now() - startTime).toFixed(2) + 'ms',
       metadata: {
-        collectionName: 'submissions',
-        databaseName: 'safe-haven',
-        documentCount: await db.collection('submissions').countDocuments()
+        collectionName: 'user-data',
+        databaseName: 'form-submitions',
+        documentCount: await db.collection('user-data').countDocuments()
       }
     });
 

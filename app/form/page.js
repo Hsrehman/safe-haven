@@ -5,9 +5,20 @@ import {
   validateField,
   validateForm,
 } from "@/app/utils/formValidation";
+import PlacesAutocomplete from '@/app/components/PlacesAutocomplete';
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ClipboardList, Send } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react"; 
+
+function loadGoogleMapsScript() {
+  if (typeof window !== 'undefined' && !window.google) {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDCvffwS03ouOlKBXWWcI5qrIKXKtHJtzg&libraries=places&v=weekly`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+}
 
 const fadeIn = {
   initial: { opacity: 0, x: 20 },
@@ -82,7 +93,6 @@ const FormField = ({
     case "tel":
     case "date":
     case "number":
-    case "address":
       return (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -96,6 +106,28 @@ const FormField = ({
             onChange={(e) => onChange(field.id, e.target.value)}
             onBlur={() => onBlur(field.id)}
             className={`${fieldStyle} transform transition-all duration-300 hover:scale-[1.01]`}
+          />
+        </motion.div>
+      );
+
+    case "address":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <PlacesAutocomplete
+            value={value || ""}
+            onChange={(newValue) => onChange(field.id, newValue)}
+            onSelect={(location) => {
+              onChange(field.id, location.address);
+              onChange(`${field.id}_coordinates`, {
+                lat: location.latitude,
+                lng: location.longitude
+              });
+            }}
+            error={error}
           />
         </motion.div>
       );
@@ -244,6 +276,10 @@ export default function FormPage() {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    loadGoogleMapsScript();
+  }, []);
 
   const getVisibleQuestions = () =>
     formQuestions.filter((q) => shouldShowField(q, formData));
