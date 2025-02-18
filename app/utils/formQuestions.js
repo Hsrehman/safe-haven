@@ -39,9 +39,13 @@ export const formQuestions = [
     {
       id: 'location',
       question: 'What is your current location?',
-      type: 'address',
-      placeholder: 'City, region, or postcode',
-      required: true
+      type: 'address', 
+      placeholder: 'Enter your complete address',
+      required: true,
+      validation: (value) => {
+        if (!value) return { isValid: false, error: "Address is required" };
+        return { isValid: true };
+      }
     },
     {
       id: 'groupType',
