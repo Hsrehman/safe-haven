@@ -7,8 +7,6 @@ import { ArrowLeft, Mail } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 
-
-
 const fadeIn = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
@@ -49,6 +47,7 @@ export default function LoginPage() {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
@@ -91,7 +90,31 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    setIsLoading(false);
+
+    try {
+      const response = await fetch("/api/shelterAdmin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+
+        localStorage.setItem("token", data.token);
+
+        router.push("/shelterPortal/dashboard");
+      } else {
+        setErrors({ general: data.message || "Login failed" });
+      }
+    } catch (error) {
+      setErrors({ general: "An error occurred while logging in" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -144,6 +167,16 @@ export default function LoginPage() {
                 transition={{ delay: 0.2 }}
               >
                 <form onSubmit={handleSubmit} className="space-y-8">
+                  {errors.general && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="text-red-500 text-sm mt-1 ml-2"
+                    >
+                      {errors.general}
+                    </motion.p>
+                  )}
                   <motion.div variants={fadeIn}>
                     <label
                       htmlFor="email"
@@ -312,12 +345,11 @@ export default function LoginPage() {
                       hover:bg-white hover:border-blue-400 hover:text-blue-600
                       transition-all duration-300 shadow-sm hover:shadow-md
                       transform hover:-translate-y-0.5"
-                      
-                      onClick={() => {
-                        if (provider === "Email") {
-                          router.push("/shelterPortal/register");
-                        }
-                      }}
+                    onClick={() => {
+                      if (provider === "Email") {
+                        router.push("/shelterPortal/register");
+                      }
+                    }}
                   >
                     {provider === "Google" && (
                       <FcGoogle className="w-5 h-5 mr-2" />

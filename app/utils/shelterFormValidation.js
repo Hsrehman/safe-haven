@@ -10,16 +10,35 @@ export const OPTIONAL_FIELDS = {
   };
   
   const VALIDATION_RULES = {
-    text: value => value.length >= 2 && /^[A-Za-z\s-]{2,50}$/.test(value),
-    address: value => value && value.trim().length > 0,
+    text: value => typeof value === 'string' && value.length >= 2 && /^[A-Za-z\s-]{2,50}$/.test(value),
+    address: (value, formData) => {
+        if (typeof value === 'object' && value !== null) {
+          return (
+            typeof value.address === 'string' &&
+            value.address.trim().length > 0 &&
+            formData.location_coordinates &&
+            typeof formData.location_coordinates.lat === 'number' &&
+            typeof formData.location_coordinates.lng === 'number'
+          );
+        }
+      
+        return (
+          typeof value === 'string' &&
+          value.trim().length > 0 &&
+          formData.location_coordinates &&
+          typeof formData.location_coordinates.lat === 'number' &&
+          typeof formData.location_coordinates.lng === 'number'
+        );
+      },
+      
     email: value => /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value),
     tel: value => {
-      const cleanPhone = value.replace(/[^0-9+]/g, '');
-      return /^\+?[\d]{10,15}$/.test(cleanPhone);
+    const cleanPhone = value.replace(/[^0-9+]/g, '');
+    return /^\+?[\d]{10,15}$/.test(cleanPhone);
     },
     number: value => {
-      const num = Number(value);
-      return !isNaN(num) && num > 0;
+    const num = Number(value);
+    return !isNaN(num) && num > 0;
     },
     select: value => value && value.trim().length > 0 && value !== 'Select...',
     checkbox: value => value === true,
@@ -44,18 +63,18 @@ export const OPTIONAL_FIELDS = {
   
   export const validateField = (field, value, formData = {}) => {
     if (field.type === 'compound') {
-      const mainValue = formData[field.subQuestions[0].id];
-      const subValue = formData[field.subQuestions[1].id];
+    const mainValue = formData[field.subQuestions[0].id];
+    const subValue = formData[field.subQuestions[1].id];
   
-      if (!mainValue) {
-        return { isValid: false, error: ERROR_MESSAGES.required };
-      }
+    if (!mainValue) {
+    return { isValid: false, error: ERROR_MESSAGES.required };
+    }
   
-      if (mainValue === 'Yes' && !subValue) {
-        return { isValid: false, error: ERROR_MESSAGES[field.subQuestions[1].type] };
-      }
+    if (mainValue === 'Yes' && !subValue) {
+    return { isValid: false, error: ERROR_MESSAGES[field.subQuestions[1].type] };
+    }
   
-      return { isValid: true };
+    return { isValid: true };
     }
   
     const isRequired = field.required && !OPTIONAL_FIELDS[field.id];
@@ -66,10 +85,10 @@ export const OPTIONAL_FIELDS = {
     const validationRule = VALIDATION_RULES[field.type];
     if (!validationRule) return { isValid: true };
   
-    const isValid = validationRule(value);
+    const isValid = validationRule(value, formData);
     return {
-      isValid,
-      error: isValid ? null : ERROR_MESSAGES[field.type]
+    isValid,
+    error: isValid ? null : ERROR_MESSAGES[field.type]
     };
   };
   
@@ -78,11 +97,11 @@ export const OPTIONAL_FIELDS = {
     let isValid = true;
   
     questions.forEach(question => {
-      const validation = validateField(question, formData[question.id], formData);
-      if (!validation.isValid) {
-        errors[question.id] = validation.error;
-        isValid = false;
-      }
+    const validation = validateField(question, formData[question.id], formData);
+    if (!validation.isValid) {
+    errors[question.id] = validation.error;
+    isValid = false;
+    }
     });
   
     return { isValid, errors };

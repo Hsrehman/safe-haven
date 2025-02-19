@@ -419,7 +419,7 @@ export default function FormPage() {
     <>
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
-        strategy="beforeInteractive"
+        strategy="lazyOnload"
       />
       <main className="flex-grow bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12">
         <div className="container mx-auto px-4">
