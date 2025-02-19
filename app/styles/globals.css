@@ -19,3 +19,20 @@ body {
   color: var(--foreground);
   background: var(--background);
 }
+.form-container {
+  @apply bg-white rounded-xl shadow-2xl p-8;
+  width: 1000px;
+  height: 600px;
+}
+
+.input-field {
+  @apply w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500;
+}
+
+.btn-primary {
+  @apply w-full bg-blue-500 text-white py-4 rounded-lg text-lg font-semibold hover:bg-blue-600 transition-colors;
+}
+
+.social-btn {
+  @apply p-3 rounded-full text-white transition-colors;
+}
