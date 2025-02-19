@@ -1,8 +1,8 @@
-// app/page.js
 'use client';
 import { useRouter } from 'next/navigation';
 import { color } from "framer-motion";
 import Link from 'next/link'; // Import the Link component
+
 
 export default function Home() {
   const router = useRouter(); 

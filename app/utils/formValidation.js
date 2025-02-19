@@ -12,7 +12,17 @@ export const OPTIONAL_FIELDS = {
   
   const VALIDATION_RULES = {
     text: value => value.length >= 2 && /^[A-Za-z\s-]{2,50}$/.test(value),
-    address: value => value.length >= 2 && /^[A-Za-z0-9\s,.-]{2,100}$/.test(value),
+    address: value => value && value.trim().length > 0,
+    coordinates: value => {
+      if (!value) return false;
+      const { lat, lng } = value;
+      return (
+          typeof lat === 'number' && 
+          typeof lng === 'number' &&
+          lat >= -90 && lat <= 90 && 
+          lng >= -180 && lng <= 180
+      );
+  },
     email: value => /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value),
     tel: value => {
       const cleanPhone = value.replace(/[^0-9+]/g, '');
@@ -38,6 +48,7 @@ export const OPTIONAL_FIELDS = {
   const ERROR_MESSAGES = {
     text: 'Please enter valid text (letters only, minimum 2 characters)',
     address: 'Please enter a valid address (minimum 2 characters)',
+    coordinates: 'Invalid location coordinates',
     email: 'Please enter a valid email address (e.g., name@example.com)',
     tel: 'Please enter a valid phone number (10-15 digits)',
     date: 'Please enter a valid date (must be between 16-100 years old)',
@@ -106,6 +117,15 @@ export const OPTIONAL_FIELDS = {
           
           if (!countValidation.isValid) {
             errors[question.subQuestions[1].id] = countValidation.error;
+          }
+        }
+        if (question.type === 'address' && formData[`${question.id}_coordinates`]) {
+          const coordValidation = validateField(
+            { type: 'coordinates' },
+            formData[`${question.id}_coordinates`]
+          );
+          if (!coordValidation.isValid) {
+            errors[`${question.id}_coordinates`] = coordValidation.error;
           }
         }
         return;
