@@ -1,5 +1,8 @@
-"useClient";
-function App() {
+'use client';
+
+import React, { useState, useEffect } from 'react';
+
+export default function foodbankPoll() {
     const [reviews, setReviews] = React.useState([]);
     const [polls, setPolls] = React.useState([]);
     const [userFeedback, setUserFeedback] = React.useState('');
