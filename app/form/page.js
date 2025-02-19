@@ -1,24 +1,15 @@
 "use client";
+import Script from 'next/script';
 import { formQuestions } from "@/app/utils/formQuestions";
 import {
   OPTIONAL_FIELDS,
   validateField,
   validateForm,
 } from "@/app/utils/formValidation";
-import PlacesAutocomplete from '@/app/components/PlacesAutocomplete';
+import PlacesAutocomplete from "@/app/components/PlacesAutocomplete";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ClipboardList, Send } from "lucide-react";
-import { useState, useEffect } from "react"; 
-
-function loadGoogleMapsScript() {
-  if (typeof window !== 'undefined' && !window.google) {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDCvffwS03ouOlKBXWWcI5qrIKXKtHJtzg&libraries=places&v=weekly`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-  }
-}
+import { useState, useEffect } from "react";
 
 const fadeIn = {
   initial: { opacity: 0, x: 20 },
@@ -124,7 +115,7 @@ const FormField = ({
               onChange(field.id, location.address);
               onChange(`${field.id}_coordinates`, {
                 lat: location.latitude,
-                lng: location.longitude
+                lng: location.longitude,
               });
             }}
             error={error}
@@ -277,10 +268,6 @@ export default function FormPage() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadGoogleMapsScript();
-  }, []);
-
   const getVisibleQuestions = () =>
     formQuestions.filter((q) => shouldShowField(q, formData));
   const currentQuestion = getVisibleQuestions()[step];
@@ -429,178 +416,184 @@ export default function FormPage() {
   if (!currentQuestion) return null;
 
   return (
-    <main className="flex-grow bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12">
-      <div className="container mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#3B82C4] to-[#1A5276]">
-            Find Your Safe Space
-          </h1>
-          <p className="mt-4 text-lg text-gray-600">
-            We are here to help you find the right shelter for your needs
-          </p>
-        </motion.div>
+    <>
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
+        strategy="beforeInteractive"
+      />
+      <main className="flex-grow bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-12"
+          >
+            <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#3B82C4] to-[#1A5276]">
+              Find Your Safe Space
+            </h1>
+            <p className="mt-4 text-lg text-gray-600">
+              We are here to help you find the right shelter for your needs
+            </p>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl mx-auto"
-        >
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-8 py-4 border-b border-gray-100">
-              <div className="flex items-center space-x-2 text-[#3B82C4]">
-                <ClipboardList className="w-5 h-5" />
-                <span className="font-medium">Application Progress</span>
-              </div>
-              <div className="mt-3">
-                <div className="h-2 bg-[#D3E0EA] rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-2 bg-gradient-to-r from-[#3B82C4] to-[#1A5276] rounded-full"
-                    initial={{ width: "0%" }}
-                    animate={{
-                      width: `${
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto"
+          >
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-8 py-4 border-b border-gray-100">
+                <div className="flex items-center space-x-2 text-[#3B82C4]">
+                  <ClipboardList className="w-5 h-5" />
+                  <span className="font-medium">Application Progress</span>
+                </div>
+                <div className="mt-3">
+                  <div className="h-2 bg-[#D3E0EA] rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-2 bg-gradient-to-r from-[#3B82C4] to-[#1A5276] rounded-full"
+                      initial={{ width: "0%" }}
+                      animate={{
+                        width: `${
+                          ((step + 1) / getVisibleQuestions().length) * 100
+                        }%`,
+                      }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+                  <div className="mt-2 flex justify-between text-sm text-gray-600">
+                    <span className="font-medium">
+                      Question {step + 1} of {getVisibleQuestions().length}
+                    </span>
+                    <span className="font-medium">
+                      {Math.round(
                         ((step + 1) / getVisibleQuestions().length) * 100
-                      }%`,
-                    }}
-                    transition={{ duration: 0.5 }}
-                  />
-                </div>
-                <div className="mt-2 flex justify-between text-sm text-gray-600">
-                  <span className="font-medium">
-                    Question {step + 1} of {getVisibleQuestions().length}
-                  </span>
-                  <span className="font-medium">
-                    {Math.round(
-                      ((step + 1) / getVisibleQuestions().length) * 100
-                    )}
-                    % completed
-                  </span>
+                      )}
+                      % completed
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="p-8">
-              <AnimatePresence mode="wait">
+              <div className="p-8">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={step}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    variants={fadeIn}
+                    className="mb-8"
+                  >
+                    <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+                      {currentQuestion.question}
+                      {!OPTIONAL_FIELDS[currentQuestion.id] && (
+                        <motion.span
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-pink-500 ml-1 inline-block"
+                        >
+                          *
+                        </motion.span>
+                      )}
+                    </h2>
+
+                    <FormField
+                      field={currentQuestion}
+                      value={formData[currentQuestion.id]}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      error={errors[currentQuestion.id]}
+                      formData={formData}
+                      handleChange={handleChange}
+                    />
+                    <ErrorMessage error={errors[currentQuestion.id]} />
+                  </motion.div>
+                </AnimatePresence>
+
                 <motion.div
-                  key={step}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  variants={fadeIn}
-                  className="mb-8"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex justify-between mt-10 pt-6 border-t border-gray-100"
                 >
-                  <h2 className="text-2xl font-semibold mb-6 text-gray-800">
-                    {currentQuestion.question}
-                    {!OPTIONAL_FIELDS[currentQuestion.id] && (
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-pink-500 ml-1 inline-block"
-                      >
-                        *
-                      </motion.span>
-                    )}
-                  </h2>
-
-                  <FormField
-                    field={currentQuestion}
-                    value={formData[currentQuestion.id]}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    error={errors[currentQuestion.id]}
-                    formData={formData}
-                    handleChange={handleChange}
-                  />
-                  <ErrorMessage error={errors[currentQuestion.id]} />
-                </motion.div>
-              </AnimatePresence>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex justify-between mt-10 pt-6 border-t border-gray-100"
-              >
-                <motion.button
-                  onClick={() => setStep((s) => s - 1)}
-                  disabled={step === 0}
-                  whileHover={step !== 0 ? { scale: 1.02, x: -5 } : {}}
-                  whileTap={step !== 0 ? { scale: 0.98 } : {}}
-                  className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 
+                  <motion.button
+                    onClick={() => setStep((s) => s - 1)}
+                    disabled={step === 0}
+                    whileHover={step !== 0 ? { scale: 1.02, x: -5 } : {}}
+                    whileTap={step !== 0 ? { scale: 0.98 } : {}}
+                    className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 
                     ${
                       step === 0
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
                     }`}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </motion.button>
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </motion.button>
 
-                {step === getVisibleQuestions().length - 1 ? (
-                  <motion.button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    whileHover={{ scale: 1.02, x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`flex items-center px-8 py-3 bg-gradient-to-r from-[#3B82C4] to-[#1A5276] 
+                  {step === getVisibleQuestions().length - 1 ? (
+                    <motion.button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      whileHover={{ scale: 1.02, x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`flex items-center px-8 py-3 bg-gradient-to-r from-[#3B82C4] to-[#1A5276] 
                       text-white rounded-xl font-medium hover:from-[#1F6A91] hover:to-[#0C374A] hover:shadow-lg transition-all duration-200
                       ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    {isSubmitting ? (
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center"
-                      >
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
+                    >
+                      {isSubmitting ? (
+                        <motion.span
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex items-center"
                         >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Submitting...
-                      </motion.span>
-                    ) : (
-                      <>
-                        <span>Submit Application</span>
-                        <Send className="w-4 h-4 ml-2" />
-                      </>
-                    )}
-                  </motion.button>
-                ) : (
-                  <motion.button
-                    onClick={handleNext}
-                    whileHover={{ scale: 1.02, x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center px-8 py-3 bg-gradient-to-r from-[#3B82C4] to-[#1A5276] 
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Submitting...
+                        </motion.span>
+                      ) : (
+                        <>
+                          <span>Submit Application</span>
+                          <Send className="w-4 h-4 ml-2" />
+                        </>
+                      )}
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      onClick={handleNext}
+                      whileHover={{ scale: 1.02, x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center px-8 py-3 bg-gradient-to-r from-[#3B82C4] to-[#1A5276] 
                     text-white rounded-xl font-medium hover:from-[#1F6A91] hover:to-[#0C374A] hover:shadow-lg transition-all duration-200"
-                  >
-                    <span>Next</span>
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </motion.button>
-                )}
-              </motion.div>
+                    >
+                      <span>Next</span>
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </motion.button>
+                  )}
+                </motion.div>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      </div>
-    </main>
+          </motion.div>
+        </div>
+      </main>
+    </>
   );
 }

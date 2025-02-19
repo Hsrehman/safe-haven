@@ -7,6 +7,8 @@ import { ArrowLeft, Mail } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 
+
+
 const fadeIn = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
@@ -310,6 +312,12 @@ export default function LoginPage() {
                       hover:bg-white hover:border-blue-400 hover:text-blue-600
                       transition-all duration-300 shadow-sm hover:shadow-md
                       transform hover:-translate-y-0.5"
+                      
+                      onClick={() => {
+                        if (provider === "Email") {
+                          router.push("/shelterPortal/register");
+                        }
+                      }}
                   >
                     {provider === "Google" && (
                       <FcGoogle className="w-5 h-5 mr-2" />
