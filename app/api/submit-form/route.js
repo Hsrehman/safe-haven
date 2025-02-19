@@ -7,7 +7,7 @@ export async function POST(request) {
     const formData = await request.json();
 
     const client = await clientPromise;
-    const db = client.db('safe-haven');
+    const db = client.db('form-submission');
 
     const result = await db.collection('user-data').insertOne({
       ...formData,

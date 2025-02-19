@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin } from 'lucide-react';
 
-const PlacesAutocomplete = ({ value, onChange, onSelect, error }) => {
+const PlacesAutocomplete = ({ value, onChange, onSelect, error, isDisabled }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -112,12 +112,14 @@ const PlacesAutocomplete = ({ value, onChange, onSelect, error }) => {
           value={value}
           onChange={handleInput}
           placeholder="Enter your address or postcode"
+          disabled={isDisabled}
           className={`w-full px-4 py-3 pl-12 border rounded-xl focus:outline-none focus:ring-2 
             focus:ring-[#3B82C4] focus:border-[#1A5276] transition-all duration-300 
             ${error ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-purple-300'}
-            bg-gray-50 text-[#1F3A52]`}
+            ${isDisabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-gray-50'}
+            text-[#1F3A52]`}
         />
-        <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+        <MapPin className={`absolute left-4 top-3.5 h-5 w-5 ${isDisabled ? 'text-gray-300' : 'text-gray-400'}`} />
       </div>
 
       {isLoading && (
