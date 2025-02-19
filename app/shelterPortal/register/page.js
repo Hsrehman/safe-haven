@@ -390,14 +390,12 @@ export default function Register() {
   
       try {
         const shelterData = {
-          ...formData,
-          status: 'pending',
-          registrationDate: new Date().toISOString(),
-          location: {
-            address: formData.location,
-            coordinates: formData.location_coordinates
-          }
-        };
+            ...formData,
+            status: 'pending',
+            registrationDate: new Date().toISOString(),
+            location: formData.location, 
+          };
+          
   
         const response = await fetch('/api/shelterAdmin/register', {
           method: 'POST',
@@ -419,7 +417,7 @@ export default function Register() {
         });
   
         alert("Registration submitted successfully! Your application will be reviewed.");
-        router.push('/shelterPortal/dashboard');
+
   
       } catch (error) {
         console.error("[Error] Registration Failed:", error);
@@ -437,7 +435,7 @@ export default function Register() {
         <>
         <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
-        strategy="beforeInteractive"
+        strategy="lazyOnload"
       />
       <main className="flex-grow bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12">
         <div className="container mx-auto px-4">
