@@ -11,7 +11,7 @@ export default function Header() {
         <div className="text-2xl font-bold">
           <Link 
             href="/" 
-            className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700"
+            className="bg-clip-text text-transparent bg-gradient-to-r from-[#3B82C4] to-[#1A5276]"
           >
             Safe Haven
           </Link>
@@ -26,71 +26,72 @@ export default function Header() {
           </svg>
         </button>
 
-        {/* Desktop menu */}
+
         <ul className="hidden md:flex space-x-8">
           <li>
-            <Link href="/" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
+            <Link href="/" className="text-[#154360] hover:text-[#3B82C4] font-medium transition-colors">
               Home
             </Link>
           </li>
           <li>
-            <Link href="/form" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
+            <Link href="/form" className="text-[#154360] hover:text-[#3B82C4] font-medium transition-colors">
               Get Help
             </Link>
           </li>
           <li>
-            <Link href="/about" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
+            <Link href="/about" className="text-[#154360] hover:text-[#3B82C4] font-medium transition-colors">
               About
             </Link>
           </li>
           <li>
-            <Link href="/services" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
+            <Link href="/services" className="text-[#154360] hover:text-[#3B82C4] font-medium transition-colors">
               Services
             </Link>
           </li>
           <li>
-            <Link href="/contact" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
+            <Link href="/contact" className="text-[#154360] hover:text-[#3B82C4] font-medium transition-colors">
               Contact
             </Link>
           </li>
           <li>
-            <Link href="/login" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
+            <Link href="/login" className="text-[#154360] hover:text-[#3B82C4] font-medium transition-colors">
               Login
             </Link>
           </li>
         </ul>
 
-        {/* Mobile menu */}
+
         {isMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-white shadow-lg md:hidden">
+          <div className="absolute top-full left-0 right-0 bg-[#F5F9FC] shadow-lg md:hidden">
             <ul className="px-4">
               <li>
-                <Link href="/" className="block py-2 text-gray-700 hover:text-indigo-600">
+                <Link href="/" className="block py-2 text-gray-700 hover:text-indigo-60">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/form" className="block py-2 text-gray-700 hover:text-indigo-600">
+                <Link href="/form" className="block py-2 text-[#154360] hover:text-[#3B82C4]">
                   Get Help
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="block py-2 text-gray-700 hover:text-indigo-600">
+                <Link href="/about" className="block py-2 text-[#154360] hover:text-[#3B82C4]"                >
                   About
                 </Link>
               </li>
               <li>
-                <Link href="/services" className="block py-2 text-gray-700 hover:text-indigo-600">
+                <Link href="/services" className="block py-2 text-[#154360] hover:text-[#3B82C4]"                >
                   Services
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="block py-2 text-gray-700 hover:text-indigo-600">
+                <Link href="/contact" className="block py-2 text-[#154360] hover:text-[#3B82C4]">
                   Contact
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="block py-2 text-gray-700 hover:text-indigo-600">
+                <Link href="/login" className="block py-2 text-[#154360] hover:text-[#3B82C4]"
+                >
                   Login
                 </Link>
               </li>
