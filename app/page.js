@@ -1,92 +1,93 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { color } from "framer-motion";
+import Link from 'next/link'; // Import the Link component
 
 
 export default function Home() {
   const router = useRouter(); 
   const styles = {
     mainContainer: {
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem',
-      backgroundColor: 'white'
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '2rem',
+    backgroundColor: 'white'
     },
     jumbotron: {
-      padding: '4rem 2rem',
-      marginBottom: '2rem',
-      backgroundColor: '#f8f9fa',
-      borderRadius: '1rem',
-      width: '100%'
+    padding: '4rem 2rem',
+    marginBottom: '2rem',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '1rem',
+    width: '100%'
     },
     heading: {
-      fontSize: '2.5rem',
-      fontWeight: '700',
-      marginBottom: '1rem',
-      lineHeight: '1.2'
+    fontSize: '2.5rem',
+    fontWeight: '700',
+    marginBottom: '1rem',
+    lineHeight: '1.2'
     },
     description: {
-      fontSize: '1.2rem',
-      lineHeight: '1.5'
+    fontSize: '1.2rem',
+    lineHeight: '1.5'
     },
     cardContainer: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: '2rem',
-      width: '100%',
-      marginTop: '2rem'
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '2rem',
+    width: '100%',
+    marginTop: '2rem'
     },
     darkCard: {
-      padding: '2rem',
-      borderRadius: '1rem',
-      height: '100%',
-      backgroundColor: '#212529',
-      color: 'white'
+    padding: '2rem',
+    borderRadius: '1rem',
+    height: '100%',
+    backgroundColor: '#212529',
+    color: 'white'
     },
     lightCard: {
-      padding: '2rem',
-      borderRadius: '1rem',
-      height: '100%',
-      backgroundColor: '#f8f9fa',
-      border: '1px solid #dee2e6'
+    padding: '2rem',
+    borderRadius: '1rem',
+    height: '100%',
+    backgroundColor: '#f8f9fa',
+    border: '1px solid #dee2e6'
     },
     cardHeading: {
-      fontSize: '1.75rem',
-      marginBottom: '1rem'
+    fontSize: '1.75rem',
+    marginBottom: '1rem'
     },
     cardText: {
-      marginBottom: '1.5rem'
+    marginBottom: '1.5rem'
     },
     buttonLight: {
-      padding: '0.75rem 1.5rem',
-      borderRadius: '0.5rem',
-      fontWeight: '600',
-      color: 'white',
-      border: '2px solid white',
-      backgroundColor: 'transparent',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      ':hover': {
-        backgroundColor: 'white',
-        color: '#212529'
-      }
+    padding: '0.75rem 1.5rem',
+    borderRadius: '0.5rem',
+    fontWeight: '600',
+    color: 'white',
+    border: '2px solid white',
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    ':hover': {
+    backgroundColor: 'white',
+    color: '#212529'
+    }
     },
     buttonDark: {
-      padding: '0.75rem 1.5rem',
-      borderRadius: '0.5rem',
-      fontWeight: '600',
-      color: '#6c757d',
-      border: '2px solid #6c757d',
-      backgroundColor: 'transparent',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      ':hover': {
-        backgroundColor: '#6c757d',
-        color: 'white'
-      }
+    padding: '0.75rem 1.5rem',
+    borderRadius: '0.5rem',
+    fontWeight: '600',
+    color: '#6c757d',
+    border: '2px solid #6c757d',
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    ':hover': {
+    backgroundColor: '#6c757d',
+    color: 'white'
+    }
     }
   };
 
@@ -120,7 +121,9 @@ export default function Home() {
           <p style={styles.cardText}>
             Need a meal or groceries to get through the day? Use this tool to locate food banks near you offering free meals, pantry items, and support. No matter your situation, there's a place ready to help. Let's find the nourishment and care you deserve!
           </p>
-          <button style={styles.buttonDark}>Get a Meal</button>
+          <Link href="/foodbanks" style={{ textDecoration: 'none' }}>
+            <button style={styles.buttonDark}>Get a Meal</button>
+          </Link>
         </div>
       </div>
     </main>
