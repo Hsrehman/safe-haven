@@ -25,13 +25,13 @@ const FoodBankMap = () => {
         const data = await response.json();
         
         if (data.success) {
-          // Transform the data to match the marker format
+          
           const transformedData = data.data.map(bank => ({
             id: bank._id || bank.id,
             name: bank.name,
             position: {
-              lat: Number(bank.latitude), // Convert to number
-              lng: Number(bank.longitude) // Convert to number
+              lat: Number(bank.latitude), 
+              lng: Number(bank.longitude) 
             },
             address: bank.address,
             hours: bank.hours
@@ -68,7 +68,7 @@ const FoodBankMap = () => {
         zoom={11}
       >
         {foodBanks && foodBanks.map(foodBank => {
-          // Add a check to ensure position values are valid numbers
+
           if (!isNaN(foodBank.position.lat) && !isNaN(foodBank.position.lng)) {
             return (
               <Marker
@@ -81,7 +81,7 @@ const FoodBankMap = () => {
           return null;
         })}
 
-        {selectedFoodBank && (
+          {selectedFoodBank && (
           <InfoWindow
             position={selectedFoodBank.position}
             onCloseClick={() => setSelectedFoodBank(null)}
@@ -90,9 +90,18 @@ const FoodBankMap = () => {
               <h3 className="font-bold text-lg">{selectedFoodBank.name}</h3>
               <p className="text-sm">{selectedFoodBank.address}</p>
               <p className="text-sm">Hours: {selectedFoodBank.hours}</p>
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedFoodBank.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline mt-2 inline-block"
+              >
+                Get Directions
+              </a>
             </div>
           </InfoWindow>
         )}
+        
       </GoogleMap>
     </LoadScript>
   );
