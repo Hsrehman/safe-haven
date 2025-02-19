@@ -1,47 +1,17 @@
 'use client';
-import FoodBankMap from '../components/FoodBankMap';
-import { useState, useEffect } from 'react';
+import FoodBankMap from '@/app/components/FoodBankMap';
 
-export default function FoodbanksPage() {
-  const [foodBanks, setFoodBanks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); 
-
-  useEffect(() => {
-    const fetchFoodBanks = async () => {
-      try {
-        const response = await fetch('/api/foodbanks');
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to fetch food banks: ${errorText}`);
-        }
-        const data = await response.json();
-        setFoodBanks(data);
-      } catch (error) {
-        console.error('Error fetching food banks:', error);
-        setError('Failed to load food banks. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFoodBanks();
-  }, []);
-
-  if (loading) {
-    return <div className="container">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="container text-red-500">{error}</div>;
-  }
-
+export default function FoodBanksPage() {
   return (
-    <div className="container">
-      <h1 className="text-2xl font-bold mb-4">Food Banks in Greater London</h1>
-      <FoodBankMap foodBanks={foodBanks} />
-    </div>
+    <main className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">
+          London Food Banks
+        </h1>
+        <div className="bg-white rounded-lg shadow-lg p-4">
+          <FoodBankMap />
+        </div>
+      </div>
+    </main>
   );
 }
-
-
