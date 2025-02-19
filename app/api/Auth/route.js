@@ -8,6 +8,7 @@ export async function POST(request) {
     const client = await clientPromise;
     const db = client.db("safe-haven");
     const users = db.collection("users");
+    const admins = db.collection("admins"); // New collection for admin/charity users
 
     if (action === "register") {
       // Check if user already exists
@@ -59,6 +60,57 @@ export async function POST(request) {
           email: user.email,
         },
       });
+    }
+
+    if (action === "adminLogin") {
+      // Check if admin/charity exists
+      const admin = await admins.findOne({ companyEmail });
+      if (!admin) {
+        // If admin doesn't exist, create a new admin account
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newAdmin = {
+          companyName,
+          companyEmail,
+          password: hashedPassword,
+          createdAt: new Date(),
+          role: 'admin',
+          status: 'pending' // You might want to add an approval process
+        };
+
+        const result = await admins.insertOne(newAdmin);
+
+        return NextResponse.json({
+          success: true,
+          message: "Admin account created successfully",
+          admin: {
+            id: result.insertedId,
+            companyName,
+            companyEmail,
+            role: 'admin',
+            status: 'pending'
+          }
+        });
+      } else {
+        // If admin exists, verify password
+        const passwordMatch = await bcrypt.compare(password, admin.password);
+        if (!passwordMatch) {
+          return NextResponse.json(
+            { success: false, message: "Invalid credentials" },
+            { status: 401 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          admin: {
+            id: admin._id,
+            companyName: admin.companyName,
+            companyEmail: admin.companyEmail,
+            role: admin.role,
+            status: admin.status
+          }
+        });
+      }
     }
 
     return NextResponse.json(
