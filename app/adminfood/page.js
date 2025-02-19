@@ -1,30 +1,59 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-export default function Home() {
+import Header from '../components/header'
+export default function AdminLogin() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     companyName: "",
     companyEmail: "",
     password: "",
   });
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     if (!formData.companyName || !formData.companyEmail || !formData.password) {
-      alert("Please fill in all fields.");
+      setError("Please fill in all fields.");
+      setIsLoading(false);
       return;
     }
 
-    // Use router.push inside a useEffect to avoid hydration mismatches
-    router.push("/registration");
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'adminLogin',
+          ...formData
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // On successful login, redirect to registration page
+      router.push("/registration");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -33,6 +62,11 @@ export default function Home() {
         <h2 className="text-3xl font-bold text-center text-blue-600 mb-6">
           FoodBank Signup
         </h2>
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 font-medium mb-2">
@@ -78,9 +112,10 @@ export default function Home() {
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300 disabled:opacity-50"
+            disabled={isLoading}
           >
-            Submit
+            {isLoading ? "Submitting..." : "Submit"}
           </button>
         </form>
       </div>
