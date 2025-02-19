@@ -103,9 +103,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-
         localStorage.setItem("token", data.token);
-
         router.push("/shelterPortal/dashboard");
       } else {
         setErrors({ general: data.message || "Login failed" });
