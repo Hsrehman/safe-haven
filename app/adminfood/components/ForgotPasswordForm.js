@@ -15,7 +15,7 @@ export default function ForgotPasswordForm({ onBackClick }) {
     setMessage("");
 
     try {
-      const response = await fetch('/api/auth/adminfood-auth', {
+      const response = await fetch('http://localhost:3000/api/adminfood-auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

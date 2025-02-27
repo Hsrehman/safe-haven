@@ -15,7 +15,7 @@ export default function AdminFood() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8 w-[800px] h-[500px] flex overflow-hidden">
         {/* Left Side - Image/Info */}
         <div className="w-1/2 pr-8 flex flex-col justify-center">

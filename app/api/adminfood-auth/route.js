@@ -8,7 +8,7 @@ export async function POST(request) {
         
         // Connect to MongoDB
         const client = await clientPromise;
-        const db = client.db("safehaven"); // Your shared database name
+        const db = client.db("adminfood_users"); // Your shared database name
         const collection = db.collection("adminfood_users"); // Collection specific to adminfood
 
         switch (action) {
@@ -112,3 +112,10 @@ export async function POST(request) {
         );
     }
 }
+
+export async function GET() {
+    return NextResponse.json({
+      success: true,
+      message: "This is the adminfood-auth API. Use POST requests to interact with it.",
+    });
+  }

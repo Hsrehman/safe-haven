@@ -1,42 +1,56 @@
 "use client";
-import { FaGoogle, FaFacebook, FaLinkedin } from "react-icons/fa";
+import { useState } from "react";
+import { FaGoogle, FaFacebook, FaLinkedin, FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function LoginForm({ onSignupClick, onForgotClick }) {
+  const [showPassword, setShowPassword] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-center mb-8">LOGIN</h2>
+      <h2 className="text-2xl font-bold text-center mb-8 text-black">
+        LOGIN
+      </h2>
       <div>
         <input
           type="email"
           placeholder="Email"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+          aria-label="Email"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-black"
         />
       </div>
-      <div>
+      <div className="relative">
         <input
-          type="password"
+          type={showPassword ? "text" : "password"}
           placeholder="Password"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
+          aria-label="Password"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-black"
         />
+        <button
+          type="button"
+          onClick={togglePasswordVisibility}
+          aria-label={showPassword ? "Hide password" : "Show password"}
+          className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-black"
+        >
+          {showPassword ? <FaEyeSlash /> : <FaEye />}
+        </button>
       </div>
       <div className="flex items-center justify-between">
         <label className="flex items-center">
-          <input
-            type="checkbox"
-            className="mr-2 accent-pink-500"
-          />
-          <span className="text-sm text-gray-600">Remember me?</span>
+          <input type="checkbox" className="mr-2 accent-blue-500" />
+          <span className="text-sm text-gray-800">Remember me?</span>
         </label>
         <button
           onClick={onForgotClick}
-          className="text-sm text-gray-600 hover:text-pink-500"
+          className="text-sm text-blue-500 hover: text-black"
         >
           Forgot Password?
         </button>
       </div>
-      <button
-        className="w-full bg-pink-500 text-white py-3 rounded-lg hover:bg-pink-600 transition-colors"
-      >
+      <button className="w-full bg-blue-500 text-white-500 py-3 rounded-lg hover:bg-blue-600 text-white transition-colors">
         LOGIN
       </button>
       <div className="relative my-6">
@@ -48,21 +62,42 @@ export default function LoginForm({ onSignupClick, onForgotClick }) {
         </div>
       </div>
       <div className="flex justify-center space-x-4">
+
         <button className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600">
+        <a href="https://accounts.google.com/signin"
+          target="_blank"
+          rel="noopener noreferrer" 
+          >
           <FaGoogle />
+          </a>
         </button>
+        
+
         <button className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700">
+        <a
+          href="https://www.facebook.com/login/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <FaFacebook />
+          </a>
         </button>
+
         <button className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600">
+        <a
+          href="https://www.linkedin.com/login"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <FaLinkedin />
+          </a>
         </button>
       </div>
       <div className="text-center mt-6">
-        <span className="text-gray-600">Need an account? </span>
+        <span className="text-gray-800">Need an account? </span>
         <button
           onClick={onSignupClick}
-          className="text-pink-500 hover:text-pink-600 font-medium"
+          className="text-blue-500 hover:text-blue-600 font-medium"
         >
           SIGN UP
         </button>
