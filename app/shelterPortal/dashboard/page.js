@@ -1,161 +1,220 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { LogOut, Settings, User, Bell, Home } from "lucide-react";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import logger from '@/app/utils/logger';
+import { sanitizeData } from '@/app/utils/sanitizer';
 
 export default function Dashboard() {
-  const router = useRouter();
+  const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
+  const [error, setError] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const verifyToken = async () => {
+    const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        console.log("Verifying token:", token ? "Token exists" : "No token found");
+        logger.dev('Fetching dashboard data...');
         
-        if (!token) {
-          console.log("No token found, redirecting to login...");
-          router.push("/shelterPortal/login");
-          return;
-        }
-  
-        const response = await fetch("/api/shelterAdmin/test-protected", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const response = await fetch('/api/shelterAdmin/dashboard', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
         });
-  
-        const data = await response.json();
-        console.log("Token verification response:", data);
-  
+        
+        logger.dev('Dashboard response status:', response.status);
+        
         if (!response.ok) {
-          throw new Error(data.message || "Authentication failed");
+          if (response.status === 401) {
+            logger.dev('Authentication failed, redirecting to login...');
+            router.push('/shelterPortal/login');
+            throw new Error('Please log in to access the dashboard');
+          }
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to load dashboard');
         }
-  
-        setUserData(data.user);
+        
+        const responseData = await response.json();
+        logger.dev('Dashboard data received:', sanitizeData(responseData));
+        
+        if (!responseData.success) {
+          throw new Error(responseData.message || 'Failed to load dashboard data');
+        }
+        
+        setData(responseData);
       } catch (error) {
-        console.error("Token verification failed:", error);
-        localStorage.removeItem("token");
-        router.push("/shelterPortal/login");
+        logger.error(error, 'Dashboard - fetchData');
+        setError(error.message);
       } finally {
         setIsLoading(false);
       }
     };
-  
-    verifyToken();
+
+    fetchData();
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/shelterPortal/login");
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/shelterAdmin/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        router.push('/shelterPortal/login');
+      } else {
+        logger.error(new Error('Logout failed'), 'Dashboard - handleLogout');
+      }
+    } catch (error) {
+      logger.error(error, 'Dashboard - handleLogout');
+    }
+  };
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/shelterAdmin/user', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        logger.dev('User data fetched:', sanitizeData(data));
+        setData(data);
+      } else {
+        throw new Error(data.message || 'Failed to fetch user data');
+      }
+    } catch (error) {
+      logger.error(error, 'Dashboard - fetchUserData');
+      setError('Failed to load user data');
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"
-        />
+      <div className="flex justify-center items-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">Loading Dashboard</h3>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+          <h3 className="text-xl font-semibold text-red-600 mb-4">Error</h3>
+          <p className="text-gray-700 mb-6">{error}</p>
+          <button 
+            onClick={() => router.push('/shelterPortal/login')}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            Return to Login
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-
-      <nav className="bg-white shadow-md px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Shelter Dashboard
-          </h1>
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <h3 className="text-xl font-bold text-gray-800">Shelter Management Portal</h3>
           <div className="flex items-center space-x-4">
-            <button className="p-2 hover:bg-gray-100 rounded-full">
-              <Bell className="w-6 h-6 text-gray-600" />
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full">
-              <Settings className="w-6 h-6 text-gray-600" />
-            </button>
-            <button
+            <span className="text-gray-600">
+              {data?.data?.user?.adminName || 'Admin'}
+            </span>
+            <button 
               onClick={handleLogout}
-              className="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-1 px-3 rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
             >
-              <LogOut className="w-5 h-5 mr-2" />
               Logout
             </button>
           </div>
         </div>
-      </nav>
+      </header>
 
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+          <h4 className="text-lg font-semibold text-gray-800 mb-2">Welcome</h4>
+          <p className="text-gray-600">{data?.data?.message || 'Welcome to your dashboard!'}</p>
+        </div>
 
-      <div className="max-w-7xl mx-auto py-8 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="col-span-3 bg-white rounded-xl shadow-md p-6"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <User className="w-8 h-8 text-blue-500" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Shelter Information Card */}
+          <div className="bg-white shadow-md rounded-lg p-6">
+            <h4 className="text-lg font-semibold text-gray-800 mb-4">Shelter Information</h4>
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm text-gray-500">Shelter ID:</span>
+                <p className="text-gray-700 font-medium">{data?.data?.user?.shelterId || 'Not available'}</p>
               </div>
               <div>
-                <h2 className="text-2xl font-semibold text-gray-800">
-                  Welcome Back
-                </h2>
-                <p className="text-gray-600">
-                  {userData?.email || "Shelter Administrator"}
+                <span className="text-sm text-gray-500">Admin ID:</span>
+                <p className="text-gray-700 font-medium">{data?.data?.user?.id || 'Not available'}</p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-500">Role:</span>
+                <p className="text-gray-700 font-medium">{data?.data?.user?.role || 'Admin'}</p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-500">Verification Status:</span>
+                <p className="text-gray-700 font-medium">
+                  {data?.data?.user?.isVerified ? 'Verified' : 'Not Verified'}
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
+          {/* Quick Actions Card */}
+          <div className="bg-white shadow-md rounded-lg p-6">
+            <h4 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h4>
+            <div className="space-y-3">
+              <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300">
+                Manage Shelter Profile
+              </button>
+              <button className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-green-300">
+                View Available Pets
+              </button>
+              <button 
+                onClick={() => router.push('/shelterPortal/change-password')} 
+                className="w-full bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-purple-300"
+              >
+                Change Password
+              </button>
+            </div>
+          </div>
 
-          {[
-            { title: "Total Beds", value: "50", icon: Home },
-            { title: "Available Beds", value: "12", icon: Home },
-            { title: "Today's Check-ins", value: "8", icon: User },
-          ].map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl shadow-md p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm">{stat.title}</p>
-                  <p className="text-2xl font-semibold text-gray-800 mt-1">
-                    {stat.value}
-                  </p>
-                </div>
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <stat.icon className="w-6 h-6 text-blue-500" />
-                </div>
+          {/* Statistics Card */}
+          <div className="bg-white shadow-md rounded-lg p-6">
+            <h4 className="text-lg font-semibold text-gray-800 mb-4">Statistics</h4>
+            <div className="space-y-4">
+              <div>
+                <span className="text-sm text-gray-500">Total Pets:</span>
+                <p className="text-2xl font-bold text-blue-600">0</p>
               </div>
-            </motion.div>
-          ))}
+              <div>
+                <span className="text-sm text-gray-500">Pending Adoptions:</span>
+                <p className="text-2xl font-bold text-yellow-600">0</p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-500">Completed Adoptions:</span>
+                <p className="text-2xl font-bold text-green-600">0</p>
+              </div>
+            </div>
+          </div>
         </div>
+      </main>
 
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-8 bg-white rounded-xl shadow-md p-6"
-        >
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Debug Information
-          </h3>
-          <pre className="bg-gray-50 p-4 rounded-lg overflow-auto">
-            {JSON.stringify(userData, null, 2)}
-          </pre>
-        </motion.div>
-      </div>
+      <footer className="bg-white border-t border-gray-200 mt-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <p className="text-sm text-gray-500 text-center">
+            © 2025 Safe Haven Shelter Management System. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
