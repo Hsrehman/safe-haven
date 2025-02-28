@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb"; 
+import logger from '@/app/utils/logger';
+
 export async function POST(request) {
   const startTime = performance.now();
   
@@ -34,21 +36,13 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error('[API Error]:', {
-      message: error.message,
-      timestamp: new Date().toISOString(),
-      processingTime: (performance.now() - startTime).toFixed(2) + 'ms'
-    });
-    
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Internal server error',
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        processingTime: (performance.now() - startTime).toFixed(2) + 'ms'
-      },
-      { status: 500 }
-    );
+    logger.error(error, 'Submit Form API');
+    const errorResponse = {
+      success: false,
+      message: 'Internal server error',
+      processingTime: `${(performance.now() - startTime).toFixed(2)}ms`
+    };
+    logger.performance('Form Submission', performance.now() - startTime);
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }

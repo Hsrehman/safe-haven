@@ -1,26 +1,21 @@
 import { NextResponse } from "next/server";
+import { TokenManager } from "@/lib/auth/tokenManager";
+import logger from "@/app/utils/logger";
 
-export async function POST() {
-  const response = NextResponse.json(
-    { success: true, message: "Logged out successfully" },
-    { status: 200 }
-  );
-
-  response.cookies.set('accessToken', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 0,
-    path: '/',
-  });
-
-  response.cookies.set('refreshToken', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 0,
-    path: '/',
-  });
-
-  return response;
+export async function POST(request) {
+  try {
+    
+    const response = NextResponse.json({ 
+      success: true,
+      message: "Logged out successfully"
+    });
+    
+    return TokenManager.clearAuthCookies(response);
+  } catch (error) {
+    logger.error(error, 'Logout API');
+    return NextResponse.json(
+      { success: false, message: "Logout failed" },
+      { status: 500 }
+    );
+  }
 }

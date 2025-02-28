@@ -10,6 +10,7 @@ import PlacesAutocomplete from "@/app/components/PlacesAutocomplete";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ClipboardList, Send } from "lucide-react";
 import { useState, useEffect } from "react";
+import logger from '@/app/utils/logger';
 
 const fadeIn = {
   initial: { opacity: 0, x: 20 },
@@ -337,28 +338,21 @@ export default function FormPage() {
       getVisibleQuestions()
     );
 
-    console.group("Form Submission Process");
-    console.log("[Form Data]:", {
-      ...formData,
+    logger.dev('Form Submission Process', {
+      formData: sanitizeData(formData),
       totalQuestions: getVisibleQuestions().length,
-      submittedAt: new Date().toISOString(),
+      validationStatus: { isValid, errors: validationErrors }
     });
-    console.log("[Validation Status]:", { isValid, errors: validationErrors });
 
     if (!isValid) {
-      console.error("[Validation Failed]:", validationErrors);
-      console.groupEnd();
+      logger.dev('Validation Failed:', validationErrors);
       setErrors(validationErrors);
       return;
     }
 
     setIsSubmitting(true);
-    console.log("[Starting] Form submission process...");
-
     try {
-      console.log("[Request] Sending to API...");
       const startTime = performance.now();
-
       const response = await fetch("/api/submit-form", {
         method: "POST",
         headers: {
@@ -368,29 +362,20 @@ export default function FormPage() {
         body: JSON.stringify(formData),
       });
 
-      const endTime = performance.now();
-      const requestDuration = endTime - startTime;
-
       const data = await response.json();
+      const requestDuration = performance.now() - startTime;
 
-      console.log("[Network Information]:", {
+      logger.performance('Form Submission', requestDuration);
+      logger.dev('Network Information', {
         endpoint: "/api/submit-form",
-        requestDuration: `${requestDuration.toFixed(2)}ms`,
         status: response.status,
-        statusText: response.statusText,
-        headers: {
-          contentType: response.headers.get("content-type"),
-          server: response.headers.get("server"),
-        },
+        statusText: response.statusText
       });
 
-      console.log("[Server Response]:", data);
-
       if (data.success) {
-        console.log("[Success] Form submitted successfully!", {
-          timestamp: new Date().toISOString(),
+        logger.dev('Form Submission Success', {
           submissionId: data.id,
-          response: data,
+          timestamp: new Date().toISOString()
         });
         alert("Form submitted successfully!");
         setFormData({});
@@ -400,16 +385,10 @@ export default function FormPage() {
         throw new Error(data.message || "Form submission failed");
       }
     } catch (error) {
-      console.error("[Error] Form Submission Failed:", {
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        formData,
-      });
+      logger.error(error, 'Form Submission');
       alert(`Error submitting form: ${error.message}`);
     } finally {
       setIsSubmitting(false);
-      console.log("[Completed] Form submission process");
-      console.groupEnd();
     }
   };
 
