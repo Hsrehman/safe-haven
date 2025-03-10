@@ -1,11 +1,12 @@
-import './styles/globals.css'
-import Header from './components/header'
-import Footer from './components/footer'
+import './styles/globals.css';
+import Header from './components/header';
+import Footer from './components/footer';
+import Chatbot from './components/Chatbot';
 
 export const metadata = {
   title: 'Safe Haven',
-  description: 'Your home comfort awaits'
-}
+  description: 'Your home comfort awaits',
+};
 
 export default function RootLayout({ children }) {
   return (
@@ -13,8 +14,9 @@ export default function RootLayout({ children }) {
       <body>
         <Header />
         {children}
+        <Chatbot />
         <Footer />
       </body>
     </html>
-  )
+  );
 }
