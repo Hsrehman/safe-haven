@@ -41,6 +41,12 @@ const convertToDMS = (coordinate, isLatitude) => {
 const timeSlots = ["6am", "8am", "10am", "12pm", "2pm", "4pm", "6pm", "8pm"];
 
 const questions = [
+  {
+    label: "Food Bank Name",
+    type: "text",
+    name: "foodBankName",
+    required: true
+  },
   { label: "Owner Name", type: "text", name: "ownerName", required: true },
   {
     label: "Email Address",
@@ -130,6 +136,7 @@ export default function Registration() {
   const [companyData, setCompanyData] = useState(null);
   const [direction, setDirection] = useState(1);
   const [formData, setFormData] = useState({
+    foodBankName: "",
     ownerName: "",
     email: "",
     foodType: [],
@@ -141,18 +148,18 @@ export default function Registration() {
       dmsNotation: ""
     },
    
-  manualAddress: "",
-  manualCity: "",
-  manualPostcode: "",
-  manualState: "",
-  manualCountry: "",
+  
     allowedGenders: [],
     provideTakeaway: "",
     openOnHolidays: "",
-    hasSeating: "no",
-    seatingCapacity: "",
-    allowAllReligions: "yes",
-    allowedReligions: [],
+    seatingArrangement: {
+      hasSeating: "no",
+      seatingCapacity: null
+    },
+    religionPolicy: {
+      allowAllReligions: "yes",
+      allowedReligions: []
+    },
     busyTimes: {
       MON: { '6am': 0, '9am': 0, '12pm': 0, '3pm': 0, '6pm': 0, '9pm': 0 },
       TUE: { '6am': 0, '9am': 0, '12pm': 0, '3pm': 0, '6pm': 0, '9pm': 0 },
@@ -173,7 +180,6 @@ export default function Registration() {
   const handleLocationUpdate = (locationData) => {
     const { lat, lng, address } = locationData;
     
-    
     const latDMS = convertToDMS(lat, true);
     const lngDMS = convertToDMS(lng, false);
     const dmsNotation = `${latDMS} ${lngDMS}`;
@@ -188,47 +194,93 @@ export default function Registration() {
       }
     }));
     
-
     setFormErrors(prev => ({
       ...prev,
       location: ""
     }));
   };
-  
  
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const { latitude, longitude } = position.coords;
           
-          
-          const latDMS = convertToDMS(latitude, true);
-          const lngDMS = convertToDMS(longitude, false);
-          const dmsNotation = `${latDMS} ${lngDMS}`;
-          
-          setFormData(prevData => ({
-            ...prevData,
-            location: {
-              latitude,
-              longitude,
-              formattedAddress: "Current Location",
-              dmsNotation: dmsNotation
-            }
-          }));
-          
-          
-          setFormErrors(prev => ({
-            ...prev,
-            location: ""
-          }));
+          try {
+            // Create a Google Maps Geocoder instance
+            const geocoder = new window.google.maps.Geocoder();
+            
+            // Get detailed address information
+            const response = await new Promise((resolve, reject) => {
+              geocoder.geocode(
+                { location: { lat: latitude, lng: longitude } },
+                (results, status) => {
+                  if (status === "OK") {
+                    resolve(results);
+                  } else {
+                    reject(status);
+                  }
+                }
+              );
+            });
+  
+            // Get the most accurate address
+            const address = response[0];
+            
+            // Convert coordinates to DMS notation
+            const latDMS = convertToDMS(latitude, true);
+            const lngDMS = convertToDMS(longitude, false);
+            const dmsNotation = `${latDMS} ${lngDMS}`;
+            
+            setFormData(prevData => ({
+              ...prevData,
+              location: {
+                latitude,
+                longitude,
+                formattedAddress: address.formatted_address,
+                dmsNotation: dmsNotation
+              }
+            }));
+            
+            setFormErrors(prev => ({
+              ...prev,
+              location: ""
+            }));
+          } catch (error) {
+            console.error("Geocoding error:", error);
+            setFormErrors(prev => ({
+              ...prev,
+              location: "Failed to get address details. Please try again."
+            }));
+          }
         },
         (error) => {
-          console.error("Error getting location:", error);
+          console.error("Geolocation error:", error);
+          let errorMessage = "Failed to get current location. ";
+          
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage += "Please allow location access in your browser settings.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage += "Location information is unavailable.";
+              break;
+            case error.TIMEOUT:
+              errorMessage += "Location request timed out.";
+              break;
+            default:
+              errorMessage += "Please try again or use the map.";
+          }
+          
           setFormErrors(prev => ({
             ...prev,
-            location: "Failed to get current location. Please try again or use the map."
+            location: errorMessage
           }));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     } else {
@@ -242,54 +294,80 @@ export default function Registration() {
   
   const validateForm = (question, formData) => {
     const errors = {};
+    if (question.type === "religion" && question.required) {
+      if (!formData.religionPolicy.allowAllReligions) {
+        errors.allowAllReligions = "Please select whether you allow all religions";
+      } else if (
+        formData.religionPolicy.allowAllReligions === "no" && 
+        (!formData.religionPolicy.allowedReligions || 
+         formData.religionPolicy.allowedReligions.length === 0)
+      ) {
+        errors.allowedReligions = "Please select at least one religion";
+      }
+    }
     if (question.required) {
-      if (question.type === "location") {
-        if (formData.locationType === "live") {
-          if (!formData.location.latitude || !formData.location.longitude) {
-            errors.location = "Please select a location on the map or use your current location";
+      switch (question.type) {
+        case "text":
+        case "email":
+          if (!formData[question.name] || formData[question.name].trim() === "") {
+            errors[question.name] = `${question.label} is required`;
           }
-        } else if (formData.locationType === "manual") {
-          if (!formData.manualAddress) {
-            errors.location = "Please enter your street address";
+          break;
+          
+        case "checkbox-group":
+          if (!formData[question.name] || formData[question.name].length === 0) {
+            errors[question.name] = `Please select at least one ${question.label.toLowerCase()}`;
           }
-          if (!formData.manualCity) {
-            errors.location = "Please enter your city";
+          break;
+          
+        case "location":
+          if (!formData.location.latitude || !formData.location.longitude || !formData.location.formattedAddress) {
+            errors.location = "Please select a location on the map";
           }
-          if (!formData.manualPostcode) {
-            errors.location = "Please enter your postal code";
+          break;
+          
+        case "radio":
+          if (!formData[question.name]) {
+            errors[question.name] = `Please select an option for ${question.label}`;
           }
-        } else {
-          errors.location = "Please select a location method";
-        }
+          break;
+          
+          case "seating":
+            if (!formData.seatingArrangement.hasSeating) {
+              errors.hasSeating = "Please select whether you have seating arrangements";
+            } else if (
+              formData.seatingArrangement.hasSeating === "yes" && 
+              !formData.seatingArrangement.seatingCapacity
+            ) {
+              errors.seatingCapacity = "Please enter seating capacity";
+            }
+            break;
+          
+            case "religion":
+              if (!formData.religionPolicy.allowAllReligions) {
+                errors.allowAllReligions = "Please select whether you allow all religions";
+              } else if (
+                formData.religionPolicy.allowAllReligions === "no" && 
+                (!formData.religionPolicy.allowedReligions || 
+                 formData.religionPolicy.allowedReligions.length === 0)
+              ) {
+                errors.allowedReligions = "Please select allowed religions";
+              }
+              break;
+          
+        case "busyTimes":
+          // Add validation for busy times if needed
+          break;
+          
+        case "tel":
+          if (!formData[question.name]) {
+            errors[question.name] = "Phone number is required";
+          } else if (!isValidPhoneNumber(formData[question.name])) {
+            errors[question.name] = "Please enter a valid 10-digit phone number";
+          }
+          break;
       }
-      if (question.type === "tel") {
-        if (!formData.contactNumber) {
-          errors.contactNumber = "Phone number is required";
-        } else if (!isValidPhoneNumber(formData.contactNumber)) {
-          errors.contactNumber = "Please enter a valid 10-digit phone number";
-        }
-      }
-      
-      } else if (question.type === "email") {
-        if (!formData.email) {
-          errors.email = "Email is required";
-        } else if (!isValidEmail(formData.email)) {
-          errors.email = "Invalid email format";
-        }
-      } else if (question.type === "seating") {
-        if (formData.hasSeating === "yes" && !formData.seatingCapacity) {
-          errors.seatingCapacity = "Please enter seating capacity";
-        }
-      } else if (question.type === "religion") {
-        if (
-          formData.allowAllReligions === "no" &&
-          formData.allowedReligions.length === 0
-        ) {
-          errors.allowedReligions = "Please select allowed religions";
-        }
-      } else if (!formData[question.name]) {
-        errors[question.name] = `${question.label} is required`;
-      }
+    }
     
     return errors;
   };
@@ -339,12 +417,23 @@ export default function Registration() {
 
   const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
+  
     setFormErrors({ ...formErrors, [name]: "" });
-
+    
+    
+  
     if (type === "checkbox") {
-      
       if (name === "allowedReligions") {
         handleReligionChange(e);
+      } else if (name === "allowAllReligions") {
+        setFormData(prevData => ({
+          ...prevData,
+          religionPolicy: {
+            ...prevData.religionPolicy,
+            allowAllReligions: value,
+            allowedReligions: value === "yes" ? [] : prevData.religionPolicy.allowedReligions
+          }
+        }));
       } else {
         setFormData((prevData) => {
           const fieldName =
@@ -357,21 +446,53 @@ export default function Registration() {
           return { ...prevData, [fieldName]: updatedArray };
         });
       }
+    } else if (name === "hasSeating") {
+      setFormData((prevData) => ({
+        ...prevData,
+        seatingArrangement: {
+          ...prevData.seatingArrangement,
+          hasSeating: value,
+          seatingCapacity: value === "no" ? null : prevData.seatingArrangement.seatingCapacity
+        }
+      }));
+    } else if (name === "seatingCapacity") {
+      setFormData((prevData) => ({
+        ...prevData,
+        seatingArrangement: {
+          ...prevData.seatingArrangement,
+          seatingCapacity: value
+        }
+      }));
+    } else if (name === "allowAllReligions") {
+      setFormData((prevData) => ({
+        ...prevData,
+        religionPolicy: {
+          ...prevData.religionPolicy,
+          allowAllReligions: value,
+          allowedReligions: value === "yes" ? [] : prevData.religionPolicy.allowedReligions
+        }
+      }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      // For simple text inputs and other cases
+      setFormData(prevData => ({ ...prevData, [name]: value }));
     }
+    
+    // Debugging: Log the updated formData
+    console.log("Updated formData after change:", formData);
   };
 
   const handleReligionChange = (e) => {
     const { value, checked } = e.target;
     setFormData((prevData) => ({
       ...prevData,
-      allowedReligions: checked
-        ? [...prevData.allowedReligions, value]
-        : prevData.allowedReligions.filter((r) => r !== value)
+      religionPolicy: {
+        ...prevData.religionPolicy,
+        allowedReligions: checked
+        ? [...new Set([...prevData.religionPolicy.allowedReligions, value])] // Ensure no duplicates
+        : prevData.religionPolicy.allowedReligions.filter((r) => r !== value)
+      }
     }));
   };
-
   const handleNext = () => {
     const errors = validateForm(questions[currentPage], formData);
     setFormErrors(errors);
@@ -393,10 +514,10 @@ export default function Registration() {
       setCurrentPage(currentPage - 1);
     }
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+    // Debugging: Log the formData before sending
+  console.log("Form Data being sent:", formData);
     const allErrors = {};
     questions.forEach((question) => {
       const questionErrors = validateForm(question, formData);
@@ -407,49 +528,26 @@ export default function Registration() {
     if (Object.keys(allErrors).length === 0) {
       try {
         setIsLoading(true);
-        
-        
-        let finalFormData = JSON.parse(JSON.stringify(formData));
-        
-        
-        if (finalFormData.locationType === "manual") {
-          
-          const formattedAddress = `${finalFormData.manualAddress}, ${finalFormData.manualCity}, ${finalFormData.manualState}, ${finalFormData.manualPostcode}, ${finalFormData.manualCountry}`;
-          
-          finalFormData.location = {
-            ...finalFormData.location,
-            formattedAddress: formattedAddress,
-            
-            latitude: null,
-            longitude: null
-          };
-        } else {
-          
-          if (finalFormData.location.latitude) {
-            finalFormData.location.latitude = Number(finalFormData.location.latitude);
-          }
-          if (finalFormData.location.longitude) {
-            finalFormData.location.longitude = Number(finalFormData.location.longitude);
-          }
-        }
-        
-        
-        const registrationData = { ...companyData, ...finalFormData };
-        
-        
-        console.log('Sending data:', registrationData);
   
-        
+        // Debugging: Log the formData before sending
+        console.log("Form Data:", formData);
+  
+        let finalFormData = JSON.parse(JSON.stringify(formData));
+  
+        // Ensure no duplicates in allowedReligions
+        if (finalFormData.religionPolicy && finalFormData.religionPolicy.allowedReligions) {
+          finalFormData.religionPolicy.allowedReligions = [...new Set(finalFormData.religionPolicy.allowedReligions)];
+        }
+  
         const response = await fetch("/api/adminfoodregistration-auth", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Accept": "application/json"
           },
-          body: JSON.stringify(registrationData)
+          body: JSON.stringify(finalFormData)
         });
-        
-        
+  
         const contentType = response.headers.get("content-type");
         if (!response.ok) {
           if (contentType && contentType.includes("application/json")) {
@@ -457,18 +555,13 @@ export default function Registration() {
             throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
           } else {
             const errorText = await response.text();
-            console.error('Non-JSON error response:', errorText);
+            console.error("Non-JSON error response:", errorText);
             throw new Error(`Server error! status: ${response.status}`);
           }
         }
-        
-       
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Server returned non-JSON response");
-        }
   
         const data = await response.json();
-        
+  
         if (data.success) {
           localStorage.removeItem("companyData");
           setSubmissionSuccess(true);
@@ -479,14 +572,13 @@ export default function Registration() {
           throw new Error(data.message || "Registration failed");
         }
       } catch (error) {
-        console.error('Submission error:', error);
+        console.error("Submission error:", error);
         alert(error.message || "An error occurred during registration");
       } finally {
         setIsLoading(false);
       }
     }
   };
-
   
   const renderAddressFields = () => (
     <div className="mb-4">
@@ -539,168 +631,31 @@ export default function Registration() {
   );
 
   
-const renderLocationSelector = () => (
-  <div className="mb-4">
-    <label className="block text-gray-700 text-sm font-bold mb-2">
-      Select Your Location
-    </label>
-    
-    
-    <div className="mb-4 space-y-2">
-      <label className="flex items-center p-3 rounded-lg border-2 border-blue-100 hover:border-blue-300 transition-all duration-200 cursor-pointer w-full">
-        <input
-          type="radio"
-          name="locationType"
-          value="live"
-          checked={formData.locationType === "live"}
-          onChange={() => setFormData(prev => ({
-            ...prev,
-            locationType: "live"
-          }))}
-          className="mr-3 h-5 w-5 accent-blue-600"
-        />
-        <span className="text-blue-800 font-medium">Use Live Location</span>
+  const renderLocationSelector = () => (
+    <div className="mb-4">
+      <label className="block text-gray-700 text-sm font-bold mb-2">
+        Select Your Location
       </label>
       
-      <label className="flex items-center p-3 rounded-lg border-2 border-blue-100 hover:border-blue-300 transition-all duration-200 cursor-pointer w-full">
-        <input
-          type="radio"
-          name="locationType"
-          value="manual"
-          checked={formData.locationType === "manual"}
-          onChange={() => setFormData(prev => ({
-            ...prev,
-            locationType: "manual"
-          }))}
-          className="mr-3 h-5 w-5 accent-blue-600"
+      <div className="h-[400px] w-full rounded-lg overflow-hidden border-2 border-blue-200 mb-4">
+        <MapWithNoSSR 
+          onLocationSelect={handleLocationUpdate}
+          initialLocation={formData.location.latitude && formData.location.longitude ? 
+            {lat: formData.location.latitude, lng: formData.location.longitude} : null}
         />
-        <span className="text-blue-800 font-medium">Enter Address Manually</span>
-      </label>
+      </div>
+      
+      {formData.location.latitude && formData.location.longitude && (
+        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+          <p className="text-sm font-medium text-blue-800">Selected Location:</p>
+          <p className="text-sm text-blue-700 break-words">{formData.location.dmsNotation}</p>
+          {formData.location.formattedAddress && (
+            <p className="text-sm text-blue-600 mt-1">{formData.location.formattedAddress}</p>
+          )}
+        </div>
+      )}
     </div>
-    
-    
-    {formData.locationType === "live" && (
-      <>
-        <motion.button
-          type="button"
-          onClick={getCurrentLocation}
-          className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md w-full"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          Use Current Location
-        </motion.button>
-        
-        <div className="h-[300px] w-full rounded-lg overflow-hidden border-2 border-blue-200 mb-4">
-          <MapWithNoSSR 
-            onLocationSelect={handleLocationUpdate}
-            initialLocation={formData.location.latitude && formData.location.longitude ? 
-              [formData.location.latitude, formData.location.longitude] : null}
-          />
-        </div>
-        
-        {formData.location.latitude && formData.location.longitude && (
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-            <p className="text-sm font-medium text-blue-800">Selected Location:</p>
-            <p className="text-sm text-blue-700 break-words">{formData.location.dmsNotation}</p>
-            {formData.location.formattedAddress && (
-              <p className="text-sm text-blue-600 mt-1">{formData.location.formattedAddress}</p>
-            )}
-          </div>
-        )}
-      </>
-    )}
-    
-    
-    {formData.locationType === "manual" && (
-      <motion.div 
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: "auto" }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Street Address
-            </label>
-            <input
-              type="text"
-              name="manualAddress"
-              value={formData.manualAddress}
-              onChange={handleChange}
-              className="shadow-md appearance-none border-2 border-blue-100 focus:border-blue-500 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition-all duration-300"
-              placeholder="123 Main St"
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                City
-              </label>
-              <input
-                type="text"
-                name="manualCity"
-                value={formData.manualCity}
-                onChange={handleChange}
-                className="shadow-md appearance-none border-2 border-blue-100 focus:border-blue-500 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition-all duration-300"
-                placeholder="City"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Postal Code
-              </label>
-              <input
-                type="text"
-                name="manualPostcode"
-                value={formData.manualPostcode}
-                onChange={handleChange}
-                className="shadow-md appearance-none border-2 border-blue-100 focus:border-blue-500 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition-all duration-300"
-                placeholder="Postal Code"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              State/Province
-            </label>
-            <input
-              type="text"
-              name="manualState"
-              value={formData.manualState}
-              onChange={handleChange}
-              className="shadow-md appearance-none border-2 border-blue-100 focus:border-blue-500 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition-all duration-300"
-              placeholder="State/Province"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Country
-            </label>
-            <input
-              type="text"
-              name="manualCountry"
-              value={formData.manualCountry}
-              onChange={handleChange}
-              className="shadow-md appearance-none border-2 border-blue-100 focus:border-blue-500 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition-all duration-300"
-              placeholder="Country"
-            />
-          </div>
-        </div>
-      </motion.div>
-    )}
-    
-    {formErrors.location && (
-      <p className="text-red-500 text-xs italic mt-2">
-        {formErrors.location}
-      </p>
-    )}
-  </div>
-);
+  );
 
   const renderBusyTimes = () => {
     const timeSlots = ['6am', '9am', '12pm', '3pm', '6pm', '9pm'];
@@ -859,7 +814,7 @@ const renderLocationSelector = () => (
             type="radio"
             name="hasSeating"
             value="yes"
-            checked={formData.hasSeating === "yes"}
+            checked={formData.seatingArrangement.hasSeating === "yes"}
             onChange={handleChange}
             className="mr-3 h-5 w-5 accent-blue-600"
           />
@@ -870,7 +825,7 @@ const renderLocationSelector = () => (
             type="radio"
             name="hasSeating"
             value="no"
-            checked={formData.hasSeating === "no"}
+            checked={formData.seatingArrangement.hasSeating === "no"}
             onChange={handleChange}
             className="mr-3 h-5 w-5 accent-blue-600"
           />
@@ -878,7 +833,7 @@ const renderLocationSelector = () => (
         </label>
       </div>
       
-      {formData.hasSeating === "yes" && (
+      {formData.seatingArrangement.hasSeating === "yes" && (
         <motion.div 
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
@@ -891,7 +846,7 @@ const renderLocationSelector = () => (
           <input
             type="number"
             name="seatingCapacity"
-            value={formData.seatingCapacity}
+            value={formData.seatingArrangement.seatingCapacity || ""}
             onChange={handleChange}
             className="shadow-md appearance-none border-2 border-blue-100 focus:border-blue-500 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition-all duration-300"
           />
@@ -916,7 +871,7 @@ const renderLocationSelector = () => (
             type="radio"
             name="allowAllReligions"
             value="yes"
-            checked={formData.allowAllReligions === "yes"}
+            checked={formData.religionPolicy.allowAllReligions === "yes"}
             onChange={handleChange}
             className="mr-3 h-5 w-5 accent-blue-600"
           />
@@ -927,7 +882,7 @@ const renderLocationSelector = () => (
             type="radio"
             name="allowAllReligions"
             value="no"
-            checked={formData.allowAllReligions === "no"}
+            checked={formData.religionPolicy.allowAllReligions === "no"}
             onChange={handleChange}
             className="mr-3 h-5 w-5 accent-blue-600"
           />
@@ -935,7 +890,7 @@ const renderLocationSelector = () => (
         </label>
       </div>
       
-      {formData.allowAllReligions === "no" && (
+      {formData.religionPolicy.allowAllReligions === "no" && (
         <motion.div 
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
@@ -953,8 +908,8 @@ const renderLocationSelector = () => (
                     type="checkbox"
                     name="allowedReligions"
                     value={religion}
-                    checked={formData.allowedReligions.includes(religion)}
-                    onChange={handleReligionChange}
+                    checked={formData.religionPolicy.allowedReligions.includes(religion)}
+                    onChange={handleChange}
                     className="mr-3 h-5 w-5 accent-blue-600"
                   />
                   <span className="text-blue-800 font-medium">{religion}</span>

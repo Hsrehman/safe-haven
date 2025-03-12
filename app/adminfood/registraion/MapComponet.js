@@ -1,73 +1,97 @@
-// MapComponent.js
 "use client";
+import { useEffect, useState } from 'react';
+import { GoogleMap, Marker, StandaloneSearchBox, useJsApiLoader } from '@react-google-maps/api';
 
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// Fix Leaflet icon issues
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-});
-
-// Component to handle map events
-function LocationMarker({ onLocationSelect, initialLocation }) {
-  const [position, setPosition] = useState(initialLocation || null);
+const MapComponent = ({ onLocationSelect, initialLocation }) => {
+  const [map, setMap] = useState(null);
+  const [marker, setMarker] = useState(initialLocation);
+  const [searchBox, setSearchBox] = useState(null);
   
-  const map = useMapEvents({
-    click(e) {
-      setPosition(e.latlng);
-      
-      // Reverse geocode to get address (optional)
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
-        .then(response => response.json())
-        .then(data => {
-          onLocationSelect({
-            lat: e.latlng.lat,
-            lng: e.latlng.lng,
-            address: data.display_name
-          });
-        })
-        .catch(error => {
-          console.error("Error getting address:", error);
-          onLocationSelect({
-            lat: e.latlng.lat,
-            lng: e.latlng.lng
-          });
-        });
-    }
+  const defaultCenter = { lat: 20.5937, lng: 78.9629 }; // India center
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    libraries: ["places"]
   });
 
-  useEffect(() => {
-    if (initialLocation) {
-      map.flyTo(initialLocation, map.getZoom());
+  const handleMapClick = (event) => {
+    const lat = event.latLng.lat();
+    const lng = event.latLng.lng();
+    setMarker({ lat, lng });
+    
+    // Get address from coordinates
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        onLocationSelect({
+          lat,
+          lng,
+          address: results[0].formatted_address
+        });
+      }
+    });
+  };
+
+  const handlePlacesChanged = () => {
+    if (searchBox) {
+      const places = searchBox.getPlaces();
+      if (places && places.length > 0) {
+        const place = places[0];
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        
+        setMarker({ lat, lng });
+        map.panTo({ lat, lng });
+        map.setZoom(15);
+        
+        onLocationSelect({
+          lat,
+          lng,
+          address: place.formatted_address
+        });
+      }
     }
-  }, [initialLocation, map]);
+  };
 
-  return position ? <Marker position={position} /> : null;
-}
+  if (loadError) {
+    return <div>Error loading maps</div>;
+  }
 
-export default function MapComponent({ onLocationSelect, initialLocation }) {
-  const defaultPosition = [51.505, -0.09]; // Default to London
-  
+  if (!isLoaded) {
+    return <div>Loading maps...</div>;
+  }
+
   return (
-    <MapContainer 
-      center={initialLocation || defaultPosition} 
-      zoom={13} 
-      style={{ height: '100%', width: '100%' }}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <LocationMarker 
-        onLocationSelect={onLocationSelect}
-        initialLocation={initialLocation}
-      />
-    </MapContainer>
+    <div className="relative">
+      <StandaloneSearchBox
+        onLoad={ref => setSearchBox(ref)}
+        onPlacesChanged={handlePlacesChanged}
+      >
+        <input
+          type="text"
+          placeholder="Search by postcode or address..."
+          className="w-full p-2 border border-gray-300 rounded mb-2 text-black placeholder-gray-500"
+          style={{ color: 'black' }}
+        />
+      </StandaloneSearchBox>
+      
+      <GoogleMap
+        mapContainerStyle={{ height: "400px", width: "100%" }}
+        center={marker || defaultCenter}
+        zoom={marker ? 15 : 5}
+        onClick={handleMapClick}
+        onLoad={map => setMap(map)}
+        options={{
+          zoomControl: true,
+          streetViewControl: false,
+          mapTypeControl: true,
+          fullscreenControl: false,
+        }}
+      >
+        {marker && <Marker position={marker} />}
+      </GoogleMap>
+    </div>
   );
-}
+};
+
+export default MapComponent;

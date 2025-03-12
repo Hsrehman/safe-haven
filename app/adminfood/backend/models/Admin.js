@@ -11,10 +11,14 @@ const AdminFoodSchema = new mongoose.Schema({
   allowedGenders: [String],
   provideTakeaway: String,
   openOnHolidays: String,
-  hasSeating: String,
-  seatingCapacity: Number,
-  allowAllReligions: String,
-  allowedReligions: [String],
+  seatingArrangement: {
+    hasSeating: String,
+    seatingCapacity: Number
+  },
+  religionPolicy: {
+    allowAllReligions: String,
+    allowedReligions: String,
+  }
   busyTimes: {
     type: Map,
     of: {

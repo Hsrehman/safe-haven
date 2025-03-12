@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const AdminFoodSchema = new mongoose.Schema({
+  foodBankName: {
+    type: String,
+    required: [true, 'Please provide a food bank name'],
+    trim: true
+  },
   ownerName: {
     type: String,
     required: true

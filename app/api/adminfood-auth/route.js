@@ -44,24 +44,24 @@ export async function POST(request) {
 
             case "login":
                 // Find user by email
-                const user = await collection.findOne({ 
+                const loginUser = await collection.findOne({ 
                     email,
                     role: "adminfood" // Ensure we're only finding adminfood users
                 });
 
-                if (!user) {
+                if (!loginUser) {
                     return NextResponse.json(
-                        { success: false, message: "Invalid credentials" },
+                        { success: false, message: "User is not registered" },
                         { status: 401 }
                     );
                 }
 
                 // Verify password
-                const isPasswordValid = await bcrypt.compare(password, user.password);
+                const isPasswordValid = await bcrypt.compare(password, loginUser.password);
 
                 if (!isPasswordValid) {
                     return NextResponse.json(
-                        { success: false, message: "Invalid credentials" },
+                        { success: false, message: "Invalid email or password" },
                         { status: 401 }
                     );
                 }
@@ -69,9 +69,9 @@ export async function POST(request) {
                 return NextResponse.json({
                     success: true,
                     user: {
-                        charityName: user.charityName,
-                        email: user.email,
-                        role: user.role
+                       
+                        email: loginUser.email,
+                        role: loginUser.role
                     }
                 });
 

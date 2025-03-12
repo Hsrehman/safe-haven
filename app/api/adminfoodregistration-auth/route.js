@@ -8,42 +8,68 @@ export async function POST(request) {
     console.log('API endpoint hit');
     await dbConnect();
     console.log('Database connected');
-
+   
     const data = await request.json();
-    console.log('Received data:', data);
-
-    // Format location data to ensure it's properly structured
-    let formattedData = { ...data };
+    console.log('Raw received data:', data);
+    console.log('Food Bank Name from request:', data.foodBankName);
     
-    // Handle location data
-    if (data.location) {
-      // Convert string values to numbers if they exist but are strings
-      if (data.location.latitude && typeof data.location.latitude === 'string') {
-        formattedData.location.latitude = parseFloat(data.location.latitude);
-      }
-      
-      if (data.location.longitude && typeof data.location.longitude === 'string') {
-        formattedData.location.longitude = parseFloat(data.location.longitude);
-      }
-      
-      // Ensure other location fields are strings
-      if (data.location.formattedAddress) {
-        formattedData.location.formattedAddress = String(data.location.formattedAddress);
-      }
-      
-      if (data.location.dmsNotation) {
-        formattedData.location.dmsNotation = String(data.location.dmsNotation);
-      }
-    }
+    // Create a new AdminFood instance directly and set fields explicitly
+    const adminFood = new AdminFood();
     
-    console.log('Formatted data:', formattedData);
+    // Set foodBankName first and explicitly
+    adminFood.foodBankName = data.foodBankName;
+    console.log('Set foodBankName directly:', adminFood.foodBankName);
+    
+    // Set other fields
+    adminFood.ownerName = data.ownerName;
+    adminFood.email = data.email;
+    adminFood.contactNumber = data.contactNumber;
+    adminFood.foodType = Array.isArray(data.foodType) ? data.foodType : [];
+    adminFood.location = {
+      latitude: data.location?.latitude ? parseFloat(data.location.latitude) : null,
+      longitude: data.location?.longitude ? parseFloat(data.location.longitude) : null,
+      formattedAddress: data.location?.formattedAddress || '',
+      dmsNotation: data.location?.dmsNotation || ''
+    };
+    adminFood.locationType = data.locationType || 'live';
+    adminFood.allowedGenders = Array.isArray(data.allowedGenders) ? data.allowedGenders : [];
+    adminFood.provideTakeaway = data.provideTakeaway || '';
+    adminFood.openOnHolidays = data.openOnHolidays || '';
+    adminFood.seatingArrangement = {
+      hasSeating: data.seatingArrangement?.hasSeating || 'no',
+      seatingCapacity: data.seatingArrangement?.seatingCapacity ? 
+        parseInt(data.seatingArrangement.seatingCapacity) : null
+    };
+    adminFood.religionPolicy = {
+      allowAllReligions: data.religionPolicy?.allowAllReligions || 'yes',
+      allowedReligions: Array.isArray(data.religionPolicy?.allowedReligions) ? 
+        data.religionPolicy.allowedReligions : []
+    };
+    adminFood.busyTimes = data.busyTimes || {
+      MON: { '6am': 0, '9am': 0, '12pm': 0, '3pm': 0, '6pm': 0, '9pm': 0 },
+      TUE: { '6am': 0, '9am': 0, '12pm': 0, '3pm': 0, '6pm': 0, '9pm': 0 },
+      WED: { '6am': 0, '9am': 0, '12pm': 0, '3pm': 0, '6pm': 0, '9pm': 0 },
+      THU: { '6am': 0, '9am': 0, '12pm': 0, '3pm': 0, '6pm': 0, '9pm': 0 },
+      FRI: { '6am': 0, '9am': 0, '12pm': 0, '3pm': 0, '6pm': 0, '9pm': 0 },
+      SAT: { '6am': 0, '9am': 0, '12pm': 0, '3pm': 0, '6pm': 0, '9pm': 0 },
+      SUN: { '6am': 0, '9am': 0, '12pm': 0, '3pm': 0, '6pm': 0, '9pm': 0 }
+    };
 
-    const adminFood = await AdminFood.create(data);
-
+    // Check if foodBankName is still set before saving
+    console.log('Before save, foodBankName =', adminFood.foodBankName);
+    
+    // Save the document
+    const savedFood = await adminFood.save();
+    console.log('After save, foodBankName =', savedFood.foodBankName);
+    
+    // Double-check by fetching the document again
+    const fetchedFood = await AdminFood.findById(savedFood._id);
+    console.log('After fetch, foodBankName =', fetchedFood.foodBankName);
+    
     return NextResponse.json({ 
       success: true, 
       message: 'Registration successful',
-      data: adminFood 
+      data: savedFood 
     }, { 
       status: 201,
       headers: {
@@ -53,11 +79,28 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('API Error:', error);
+    console.error('Error details:', error.message);
+    
+    // Enhanced error handling
+    let errorMessage = 'Registration failed';
+    if (error.code === 11000) {
+      errorMessage = 'A food bank with this email already exists';
+    } else if (error.name === 'ValidationError') {
+      errorMessage = Object.values(error.errors).map(err => err.message).join(', ');
+      console.error('Validation errors:', error.errors);
+      
+      // Check specifically for foodBankName validation errors
+      if (error.errors && error.errors.foodBankName) {
+        console.error('foodBankName validation error:', error.errors.foodBankName);
+      }
+    }
+
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Registration failed'
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     }, { 
-      status: 500,
+      status: error.code === 11000 ? 409 : 500,
       headers: {
         'Content-Type': 'application/json'
       }
