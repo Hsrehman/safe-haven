@@ -1,6 +1,6 @@
 "use client";
-import { useState, useCallback, useEffect } from "react";
-import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 
 const containerStyle = {
   width: "100%",
@@ -16,7 +16,7 @@ const center = {
 
 const libraries = ["places"];
 
-export default function FoodBankMap({ foodBanks = [] }) {
+export default function FoodBankMap({ initialFoodBanks = [] }) {
   const [selectedFoodBank, setSelectedFoodBank] = useState(null);
   const [map, setMap] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,18 +26,66 @@ export default function FoodBankMap({ foodBanks = [] }) {
     vegetarian: false,
     wheelchairAccessible: false
   });
-  const [filteredFoodBanks, setFilteredFoodBanks] = useState(foodBanks);
+  const [foodBanks, setFoodBanks] = useState(initialFoodBanks);
+  const [filteredFoodBanks, setFilteredFoodBanks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use a ref to track previous filtered results to prevent infinite loops
+  const prevFilteredRef = useRef([]);
 
-  // Filter the foodbanks based on search and filters
+  // Use the useJsApiLoader hook for better control over API loading
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    libraries
+  });
+
+  // Fetch foodbanks data if not provided via props
   useEffect(() => {
-    let results = foodBanks;
+    const fetchFoodBanks = async () => {
+      try {
+        setIsLoading(true);
+        // If initialFoodBanks is empty, fetch from API
+        if (initialFoodBanks.length === 0) {
+          const response = await fetch('/api/foodbanks');
+          const data = await response.json();
+          if (data.success) {
+            // Ensure each foodbank has position data
+            const validFoodBanks = data.data.filter(fb => 
+              fb.position && typeof fb.position.lat === 'number' && typeof fb.position.lng === 'number'
+            );
+            console.log("Valid foodbanks loaded:", validFoodBanks.length);
+            setFoodBanks(validFoodBanks);
+          }
+        } else {
+          setFoodBanks(initialFoodBanks);
+        }
+      } catch (error) {
+        console.error("Error fetching foodbanks:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFoodBanks();
+  }, [initialFoodBanks]);
+
+  // Apply filters and search when foodBanks or filters change
+  useEffect(() => {
+    // Skip filtering if data isn't loaded yet
+    if (foodBanks.length === 0) {
+      setFilteredFoodBanks([]);
+      return;
+    }
+    
+    let results = [...foodBanks]; // Create a copy to avoid mutation
     
     // Apply text search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       results = results.filter(foodBank => 
-        foodBank.name.toLowerCase().includes(query) || 
-        foodBank.address.toLowerCase().includes(query)
+        foodBank.name?.toLowerCase().includes(query) || 
+        foodBank.address?.toLowerCase().includes(query)
       );
     }
     
@@ -45,30 +93,38 @@ export default function FoodBankMap({ foodBanks = [] }) {
     if (filters.openNow) {
       const now = new Date();
       const day = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      const time = now.getHours() * 100 + now.getMinutes();
+      const dayAbbrev = day.substring(0, 3);
       
       results = results.filter(foodBank => {
-        // This is a simplified check - you would need proper time parsing for real data
-        return foodBank.hours && foodBank.hours.toLowerCase().includes('open');
+        if (!foodBank.hours) return false;
+        return foodBank.hours.toLowerCase().includes(dayAbbrev);
       });
     }
     
     if (filters.halal) {
-      results = results.filter(foodBank => foodBank.halal);
+      results = results.filter(foodBank => foodBank.halal === true);
     }
     
     if (filters.vegetarian) {
-      results = results.filter(foodBank => foodBank.vegetarian);
+      results = results.filter(foodBank => foodBank.vegetarian === true);
     }
     
     if (filters.wheelchairAccessible) {
-      results = results.filter(foodBank => foodBank.wheelchairAccessible);
+      results = results.filter(foodBank => foodBank.wheelchairAccessible === true);
     }
     
-    setFilteredFoodBanks(results);
+    // Compare IDs instead of the whole objects to prevent infinite loops
+    const currentIds = results.map(fb => fb._id).join(',');
+    const prevIds = prevFilteredRef.current.map(fb => fb._id).join(',');
+    
+    if (currentIds !== prevIds) {
+      setFilteredFoodBanks(results);
+      prevFilteredRef.current = results;
+    }
   }, [searchQuery, filters, foodBanks]);
 
   const onLoad = useCallback(function callback(map) {
+    console.log("Map loaded successfully");
     setMap(map);
   }, []);
 
@@ -82,6 +138,10 @@ export default function FoodBankMap({ foodBanks = [] }) {
       [filterName]: !prev[filterName]
     }));
   };
+
+  if (!isLoaded) {
+    return <div className="flex justify-center items-center h-96">Loading Maps...</div>;
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -154,7 +214,9 @@ export default function FoodBankMap({ foodBanks = [] }) {
           </div>
           
           <div className="mt-2 text-sm text-gray-500">
-            {filteredFoodBanks.length === 0 ? (
+            {isLoading ? (
+              <p>Loading foodbanks...</p>
+            ) : filteredFoodBanks.length === 0 ? (
               <p>No food banks match your search criteria</p>
             ) : (
               <p>Showing {filteredFoodBanks.length} food banks</p>
@@ -164,81 +226,84 @@ export default function FoodBankMap({ foodBanks = [] }) {
         
         <div className="grid grid-cols-1 md:grid-cols-3">
           <div className="md:col-span-2">
-            <LoadScript
-              googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-              libraries={libraries}
-            >
-              <GoogleMap
-                mapContainerStyle={containerStyle}
-                center={center}
-                zoom={11}
-                onLoad={onLoad}
-                onUnmount={onUnmount}
-                options={{
-                  styles: [
-                    {
-                      featureType: "poi",
-                      elementType: "labels",
-                      stylers: [{ visibility: "off" }]
-                    }
-                  ]
-                }}
-              >
-                {filteredFoodBanks.map((foodBank) => {
-                  if (foodBank.position) {
-                    return (
-                      <Marker
-                        key={foodBank.id}
-                        position={foodBank.position}
-                        onClick={() => setSelectedFoodBank(foodBank)}
-                        icon={{
-                          url: '/marker.png', // You can add a custom marker icon
-                          scaledSize: new window.google.maps.Size(30, 30)
-                        }}
-                      />
-                    );
+            <GoogleMap
+              mapContainerStyle={containerStyle}
+              center={center}
+              zoom={11}
+              onLoad={onLoad}
+              onUnmount={onUnmount}
+              options={{
+                styles: [
+                  {
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [{ visibility: "off" }]
                   }
-                  return null;
-                })}
+                ]
+              }}
+            >
+              {isLoaded && filteredFoodBanks.map((foodBank, index) => {
+                // Verify we have valid position data
+                if (foodBank?.position?.lat && foodBank?.position?.lng) {
+                  return (
+                    <Marker
+                      key={foodBank._id || `marker-${index}`}
+                      position={foodBank.position}
+                      onClick={() => setSelectedFoodBank(foodBank)}
+                      // Using a simple marker for reliability
+                      icon={{
+                        path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+                        scale: 6,
+                        fillColor: "#0066CC",
+                        fillOpacity: 1,
+                        strokeWeight: 1,
+                        strokeColor: "#FFFFFF",
+                      }}
+                    />
+                  );
+                }
+                return null;
+              })}
 
-                {selectedFoodBank && (
-                  <InfoWindow
-                    position={selectedFoodBank.position}
-                    onCloseClick={() => setSelectedFoodBank(null)}
-                  >
-                    <div className="p-3 max-w-xs">
-                      <h3 className="font-bold text-lg text-blue-700">{selectedFoodBank.name}</h3>
-                      <p className="text-sm mb-1">{selectedFoodBank.address}</p>
-                      <p className="text-sm font-medium mb-1">Hours: {selectedFoodBank.hours}</p>
+              {selectedFoodBank && selectedFoodBank.position && (
+                <InfoWindow
+                  position={selectedFoodBank.position}
+                  onCloseClick={() => setSelectedFoodBank(null)}
+                >
+                  <div className="p-3 max-w-xs">
+                    <h3 className="font-bold text-lg text-blue-700">{selectedFoodBank.name}</h3>
+                    <p className="text-sm mb-1">{selectedFoodBank.address}</p>
+                    <p className="text-sm font-medium mb-1">Hours: {selectedFoodBank.hours}</p>
+                    
+                    {/* Additional details */}
+                    <div className="flex flex-wrap gap-1 my-2">
+                      {selectedFoodBank.halal && (
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">Halal</span>
+                      )}
+                      {selectedFoodBank.vegetarian && (
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">Vegetarian</span>
+                      )}
+                      {selectedFoodBank.wheelchairAccessible && (
+                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">Accessible</span>
+                      )}
+                    </div>
+                    
+                    <div className="mt-3 flex space-x-2">
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedFoodBank.address)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded flex items-center"
+                      >
+                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        Directions
+                      </a>
                       
-                      {/* Additional details */}
-                      <div className="flex flex-wrap gap-1 my-2">
-                        {selectedFoodBank.halal && (
-                          <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">Halal</span>
-                        )}
-                        {selectedFoodBank.vegetarian && (
-                          <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">Vegetarian</span>
-                        )}
-                        {selectedFoodBank.wheelchairAccessible && (
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">Accessible</span>
-                        )}
-                      </div>
-                      
-                      <div className="mt-3 flex space-x-2">
+                      {selectedFoodBank.phone && (
                         <a
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedFoodBank.address)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded flex items-center"
-                        >
-                          <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                          </svg>
-                          Directions
-                        </a>
-                        
-                        <a
-                          href={`tel:${selectedFoodBank.phone || ''}`}
+                          href={`tel:${selectedFoodBank.phone}`}
                           className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm py-1 px-3 rounded flex items-center"
                         >
                           <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -246,12 +311,12 @@ export default function FoodBankMap({ foodBanks = [] }) {
                           </svg>
                           Call
                         </a>
-                      </div>
+                      )}
                     </div>
-                  </InfoWindow>
-                )}
-              </GoogleMap>
-            </LoadScript>
+                  </div>
+                </InfoWindow>
+              )}
+            </GoogleMap>
           </div>
           
           <div className="border-l border-gray-200 overflow-y-auto h-[600px]">
@@ -267,13 +332,13 @@ export default function FoodBankMap({ foodBanks = [] }) {
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-200">
-                  {filteredFoodBanks.map((foodBank) => (
+                  {filteredFoodBanks.map((foodBank, index) => (
                     <li 
-                      key={foodBank.id} 
-                      className={`py-4 cursor-pointer ${selectedFoodBank?.id === foodBank.id ? 'bg-blue-50' : ''}`}
+                      key={foodBank._id || `list-item-${index}`}
+                      className={`py-4 cursor-pointer ${selectedFoodBank?._id === foodBank._id ? 'bg-blue-50' : ''}`}
                       onClick={() => {
                         setSelectedFoodBank(foodBank);
-                        if (map) {
+                        if (map && foodBank.position) {
                           map.panTo(foodBank.position);
                           map.setZoom(14);
                         }
@@ -290,6 +355,9 @@ export default function FoodBankMap({ foodBanks = [] }) {
                             )}
                             {foodBank.vegetarian && (
                               <span className="bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded-sm">Vegetarian</span>
+                            )}
+                            {foodBank.wheelchairAccessible && (
+                              <span className="bg-blue-100 text-blue-800 text-xs px-1.5 py-0.5 rounded-sm">Accessible</span>
                             )}
                           </div>
                         </div>
