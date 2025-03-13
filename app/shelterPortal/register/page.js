@@ -457,6 +457,58 @@ const getPasswordStrength = password => {
   }
 }
 
+const shouldShowField = (question, formData) => {
+  
+  if (formData.authProvider === 'google') {
+    const skipFields = ['adminName', 'email', 'password'];
+    if (skipFields.includes(question.id)) {
+      return false;
+    }
+  }
+
+  const conditions = {
+    
+    customHours: () => formData.operatingHours === "Custom Hours",
+    holidayHours: () => formData.openOnHolidays === "Limited hours (please specify)",
+
+    
+    medicalDetails: () => formData.hasMedical === "Yes",
+    mentalHealthDetails: () => formData.hasMentalHealth === "Yes",
+
+    
+    maxFamilySize: () => formData.hasFamily === "Yes",
+
+    
+    nrpfDetails: () => formData.acceptNRPF === "In certain circumstances (please specify)",
+    allowedReligions: () => formData.allowAllReligions === "No",
+
+    
+    referralDetails: () => formData.referralRoutes?.includes("Agency referrals") || 
+                         formData.referralRoutes?.includes("Other (please specify)"),
+    serviceCharges: () => formData.housingBenefitAccepted?.startsWith("Yes"),
+  };
+
+  
+  return conditions[question.id] ? conditions[question.id]() : true;
+};
+
+const validateFormData = (formData, questions) => {
+  const errors = {};
+  const visibleQuestions = questions.filter(q => shouldShowField(q, formData));
+
+  for (const question of visibleQuestions) {
+    const validation = validateField(question, formData[question.id], formData);
+    if (!validation.isValid && question.required) {
+      errors[question.id] = validation.error;
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
 export default function Register() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -488,32 +540,7 @@ export default function Register() {
     }
   }, [searchParams]);
 
-  const shouldShowField = (question) => {
-    if (formData.authProvider === 'google') {
-      const skipFields = ['adminName', 'email', 'password'];
-      if (skipFields.includes(question.id)) {
-        return false;
-      }
-    }
-
-    if (question.id === 'customHours') {
-      return formData.operatingHours === 'Custom Hours';
-    }
-
-    if (question.id === 'maxFamilySize') {
-      return formData.hasFamily === 'Yes';
-    }
-    if (question.id === 'medicalDetails') {
-      return formData.hasMedical === 'Yes';
-    }
-    if (question.id === 'mentalHealthDetails') {
-      return formData.hasMentalHealth === 'Yes';
-    }
-
-    return true;
-  };
-
-  const getVisibleQuestions = () => shelterFormQuestions.filter(q => shouldShowField(q))
+  const getVisibleQuestions = () => shelterFormQuestions.filter(q => shouldShowField(q, formData))
   const currentQuestion = getVisibleQuestions()[step]
   const providerFromQuery = searchParams.get('provider');
 
@@ -608,10 +635,9 @@ export default function Register() {
   }
 
   const handleSubmit = async () => {
-    const questions = getVisibleQuestions()
-    const { isValid, errors: validationErrors } = validateForm(formData, questions)
+    const questions = getVisibleQuestions();
+    const { isValid, errors: validationErrors } = validateFormData(formData, questions);
 
-    
     if (formData.authProvider === 'google') {
       
       delete validationErrors?.email;
@@ -620,21 +646,22 @@ export default function Register() {
     }
 
     if (Object.keys(validationErrors || {}).length > 0) {
-      setErrors(validationErrors)
+      setErrors(validationErrors);
       if (validationErrors.terms) {
-        setStep(questions.length - 1)
+        setStep(questions.length - 1);
       }
-      return
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       const shelterData = {
         ...formData,
         status: 'pending',
         registrationDate: new Date().toISOString(),
-        isGoogleUser: formData.authProvider === 'google'  
-      }
+        isGoogleUser: formData.authProvider === 'google',
+        authProvider: formData.authProvider || 'email'  
+      };
 
       logger.dev('Registration attempt:', sanitizeData(shelterData));
       
@@ -642,24 +669,32 @@ export default function Register() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(shelterData),
-      })
+        credentials: 'include'
+      });
 
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.message || 'Registration failed')
+      const data = await response.json();
+      if (!response.ok) {
+        const error = new Error(data.message || 'Registration failed');
+        error.status = response.status;
+        error.data = data;
+        throw error;
+      }
 
-      
       if (formData.authProvider === 'google') {
-        router.push('/shelterPortal/dashboard')
+        router.push('/shelterPortal/dashboard');
       } else {
-        setShowVerification(true)
+        setShowVerification(true);
       }
     } catch (error) {
       logger.error(error, 'Registration Page - handleSubmit');
-      setErrors(prev => ({ ...prev, submit: error.message }))
+      setErrors(prev => ({ 
+        ...prev, 
+        submit: error.message || 'Registration failed. Please try again.' 
+      }));
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleVerify = async () => {
     if (!verificationCode) {

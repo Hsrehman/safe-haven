@@ -1,15 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin } from 'lucide-react';
 
-const PlacesAutocomplete = ({ value, onChange, onSelect, error, isDisabled }) => {
+const PlacesAutocomplete = ({ value, onChange, onSelect, error, isDisabled, reset }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+
+  
+  useEffect(() => {
+    
+    if (typeof value === 'object' && value !== null) {
+      setInputValue(value.address || '');
+    } else {
+      setInputValue(value || '');
+    }
+  }, [value]);
+
+  
+  useEffect(() => {
+    if (reset) {
+      
+      if (typeof value === 'object' && value !== null) {
+        setInputValue(value.address || '');
+      } else {
+        setInputValue(value || '');
+      }
+      
+      setSuggestions([]);
+    }
+  }, [reset, value]);
 
   const handleInput = async (e) => {
-    const value = e.target.value;
-    onChange(value);
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    onChange(newValue); 
 
-    if (!value || typeof window === 'undefined') {
+    if (!newValue || typeof window === 'undefined') {
       setSuggestions([]);
       return;
     }
@@ -24,11 +50,10 @@ const PlacesAutocomplete = ({ value, onChange, onSelect, error, isDisabled }) =>
     try {
       const autocompleteService = new window.google.maps.places.AutocompleteService();
       
-
       const addressResults = await new Promise((resolve) => {
         autocompleteService.getPlacePredictions(
           {
-            input: value,
+            input: newValue,
             componentRestrictions: { country: 'GB' }, 
             types: ['address']
           },
@@ -42,12 +67,11 @@ const PlacesAutocomplete = ({ value, onChange, onSelect, error, isDisabled }) =>
         );
       });
 
-
-      if (addressResults.length === 0 && /\d/.test(value)) {
+      if (addressResults.length === 0 && /\d/.test(newValue)) {
         const postalResults = await new Promise((resolve) => {
           autocompleteService.getPlacePredictions(
             {
-              input: value,
+              input: newValue,
               componentRestrictions: { country: 'GB' }, 
               types: ['postal_code']
             },
@@ -92,6 +116,10 @@ const PlacesAutocomplete = ({ value, onChange, onSelect, error, isDisabled }) =>
         );
       });
 
+      
+      setInputValue(place.formatted_address);
+      
+      
       onSelect({
         address: place.formatted_address,
         latitude: place.geometry.location.lat(),
@@ -109,7 +137,7 @@ const PlacesAutocomplete = ({ value, onChange, onSelect, error, isDisabled }) =>
       <div className="relative">
         <input
           type="text"
-          value={value}
+          value={inputValue} 
           onChange={handleInput}
           placeholder="Enter your address or postcode"
           disabled={isDisabled}

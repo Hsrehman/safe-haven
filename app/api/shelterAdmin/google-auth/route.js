@@ -12,30 +12,35 @@ export async function POST(request) {
     const data = await request.json();
     logger.dev('Google auth attempt:', sanitizeData(data));
 
-    const { credential } = data;
+    const { access_token } = data;
 
-    if (!credential) {
-      return NextResponse.json({ success: false, message: "Missing Google credential" }, { status: 400 });
+    if (!access_token) {
+      return NextResponse.json({ success: false, message: "Missing access token" }, { status: 400 });
     }
 
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-    const payload = ticket.getPayload();
-    const { email, name, email_verified } = payload;
+    
+    const userInfoResponse = await fetch(
+      'https://www.googleapis.com/oauth2/v3/userinfo',
+      {
+        headers: { Authorization: `Bearer ${access_token}` },
+      }
+    );
+    
+    if (!userInfoResponse.ok) {
+      throw new Error('Failed to get user info from Google');
+    }
+
+    const userInfo = await userInfoResponse.json();
+    const { email, name, email_verified } = userInfo;
 
     if (!email_verified) {
       return NextResponse.json({ success: false, message: "Google email not verified" }, { status: 401 });
     }
 
     const db = (await clientPromise).db("shelterDB");
-    
-    
     const existingUser = await db.collection("adminUsers").findOne({ email });
 
     if (existingUser) {
-      
       if (existingUser.authProvider !== 'google') {
         return NextResponse.json({ 
           success: false, 
@@ -43,17 +48,15 @@ export async function POST(request) {
         }, { status: 400 });
       }
       
-      
       const { accessToken, refreshToken } = TokenManager.generateTokens(existingUser);
       const response = NextResponse.json({ success: true });
       return TokenManager.setAuthCookies(response, accessToken, refreshToken);
     }
 
-    
     return NextResponse.json({ 
       success: true, 
       message: "complete_registration", 
-      email, 
+      email,
       name,
       provider: 'google' 
     });
