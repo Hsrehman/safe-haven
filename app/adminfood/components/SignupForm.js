@@ -50,7 +50,7 @@ export default function SignupForm({ onLoginClick }) {
 
       setSuccess("Registration successful!");
 
-      // Redirect to the registration page after a short delay
+      
       setTimeout(() => {
         router.push("/adminfood/registraion"); // Redirect to the registration page
       }, 2000);

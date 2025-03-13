@@ -1,4 +1,4 @@
-// app/backend/models/AdminFood.js
+
 import mongoose from 'mongoose';
 
 const AdminFoodSchema = new mongoose.Schema({

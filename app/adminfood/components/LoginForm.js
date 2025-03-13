@@ -37,7 +37,7 @@ export default function LoginForm({ onSignupClick, onForgotClick }) {
 
       if (data.success) {
         localStorage.setItem("userEmail", email);
-        // Login successful, redirect to blank page or dashboard
+        
         router.push("/adminfood/dashboards");
       } else {
         // Show error message

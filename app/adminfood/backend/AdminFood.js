@@ -19,7 +19,7 @@ const AdminFoodSchema = new mongoose.Schema({
     type: String,
     required: true
   }],
- // Update the location field definition
+ 
  location: {
   latitude: { type: Number },
   longitude: { type: Number },

@@ -398,7 +398,7 @@ function Dashboard() {
       }
     ];
 
-    // Get current page questions
+    
     const questionsPerPage = 2;
     const startIndex = (currentQuestionPage - 1) * questionsPerPage;
     const currentQuestions = allQuestions.slice(startIndex, startIndex + questionsPerPage);

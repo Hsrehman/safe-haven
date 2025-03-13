@@ -19,7 +19,7 @@ const BusyTimes = ({ onChange }) => {
   }, []);
 
   if (!mounted) {
-    return null; // or a loading placeholder
+    return null; 
   }
 
   const handleSliderChange = (time, value) => {

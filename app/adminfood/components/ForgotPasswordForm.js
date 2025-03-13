@@ -33,7 +33,7 @@ export default function ForgotPasswordForm({ onBackClick }) {
       }
 
       setMessage(data.message);
-      // Optionally redirect to login page after a delay
+      
       setTimeout(() => onBackClick(), 3000);
     } catch (error) {
       setError(error.message || "Failed to send reset link");

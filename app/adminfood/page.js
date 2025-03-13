@@ -23,8 +23,8 @@ export default function AdminFood() {
             Welcome to Safe Haven
           </h1>
           <p className="text-gray-600">
-            Join our community to help those in need.
-          </p>
+            Join our community to help those in need.</p>
+          
         </div>
 
         {/* Right Side - Forms */}
