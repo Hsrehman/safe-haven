@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json()); // Parse JSON request bodies
 app.use(cors()); // Enable CORS
 
-// Fake in-memory data storage
+
 let users = [];
 
 // Fake GET Method

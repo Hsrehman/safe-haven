@@ -1,4 +1,4 @@
-// app/adminfood/dashboard/page.js
+
 "use client";
 
 export default function Dashboard() {
