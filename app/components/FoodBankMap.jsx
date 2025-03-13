@@ -2,6 +2,32 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 
+// Fallback data just in case API fails
+const fallbackFoodBanks = [
+  {
+    _id: "fallback-1",
+    name: "North London Food Bank",
+    position: { lat: 51.5514, lng: -0.1577 },
+    address: "123 Example St, London",
+    hours: "Mon-Fri 9AM-5PM",
+    phone: "020-1234-5678",
+    halal: true,
+    vegetarian: true,
+    wheelchairAccessible: true
+  },
+  {
+    _id: "fallback-2",
+    name: "South London Food Bank",
+    position: { lat: 51.4577, lng: -0.1910 },
+    address: "456 Sample Rd, London",
+    hours: "Mon-Sat 10AM-4PM",
+    phone: "020-5678-1234",
+    halal: false,
+    vegetarian: true,
+    wheelchairAccessible: true
+  }
+];
+
 const containerStyle = {
   width: "100%",
   height: "600px",
@@ -26,66 +52,108 @@ export default function FoodBankMap({ initialFoodBanks = [] }) {
     vegetarian: false,
     wheelchairAccessible: false
   });
-  const [foodBanks, setFoodBanks] = useState(initialFoodBanks);
+  const [foodBanks, setFoodBanks] = useState([]);
   const [filteredFoodBanks, setFilteredFoodBanks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
   
-  // Use a ref to track previous filtered results to prevent infinite loops
-  const prevFilteredRef = useRef([]);
-
+  // Use a ref to track if data has been fetched to prevent multiple fetches
+  const dataFetchedRef = useRef(false);
+  
   // Use the useJsApiLoader hook for better control over API loading
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries
   });
 
-  // Fetch foodbanks data if not provided via props
-  useEffect(() => {
-    const fetchFoodBanks = async () => {
-      try {
-        setIsLoading(true);
-        // If initialFoodBanks is empty, fetch from API
-        if (initialFoodBanks.length === 0) {
-          const response = await fetch('/api/foodbanks');
-          const data = await response.json();
-          if (data.success) {
-            // Ensure each foodbank has position data
-            const validFoodBanks = data.data.filter(fb => 
-              fb.position && typeof fb.position.lat === 'number' && typeof fb.position.lng === 'number'
-            );
-            console.log("Valid foodbanks loaded:", validFoodBanks.length);
-            setFoodBanks(validFoodBanks);
-          }
-        } else {
-          setFoodBanks(initialFoodBanks);
-        }
-      } catch (error) {
-        console.error("Error fetching foodbanks:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchFoodBanks();
-  }, [initialFoodBanks]);
-
-  // Apply filters and search when foodBanks or filters change
-  useEffect(() => {
-    // Skip filtering if data isn't loaded yet
-    if (foodBanks.length === 0) {
-      setFilteredFoodBanks([]);
+  // Fetch foodbanks data - only once
+  const fetchFoodBanks = useCallback(async () => {
+    // If we already have data from props, use that
+    if (initialFoodBanks.length > 0) {
+      console.log("Using initial foodbanks:", initialFoodBanks.length);
+      setFoodBanks(initialFoodBanks);
+      setFilteredFoodBanks(initialFoodBanks);
+      setIsLoading(false);
       return;
     }
     
-    let results = [...foodBanks]; // Create a copy to avoid mutation
+    // If we've already fetched data, don't fetch again
+    if (dataFetchedRef.current) return;
+    
+    try {
+      setIsLoading(true);
+      setFetchError(null);
+      console.log("Fetching foodbanks from API...");
+      
+      const response = await fetch('/api/foodbanks');
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.data && Array.isArray(data.data)) {
+        const validFoodBanks = data.data.filter(fb => 
+          fb.position && 
+          typeof fb.position.lat === 'number' && 
+          typeof fb.position.lng === 'number'
+        );
+        
+        console.log("Valid foodbanks loaded:", validFoodBanks.length);
+        
+        if (validFoodBanks.length > 0) {
+          setFoodBanks(validFoodBanks);
+          setFilteredFoodBanks(validFoodBanks);
+        } else {
+          console.warn("No valid foodbanks found, using fallback data");
+          setFoodBanks(fallbackFoodBanks);
+          setFilteredFoodBanks(fallbackFoodBanks);
+        }
+      } else {
+        console.warn("API response format unexpected, using fallback data");
+        setFoodBanks(fallbackFoodBanks);
+        setFilteredFoodBanks(fallbackFoodBanks);
+      }
+      
+      // Mark that we've fetched data
+      dataFetchedRef.current = true;
+    } catch (error) {
+      console.error("Error fetching foodbanks:", error);
+      setFetchError(error.message);
+      setFoodBanks(fallbackFoodBanks);
+      setFilteredFoodBanks(fallbackFoodBanks);
+      
+      // Even on error, mark that we've attempted to fetch
+      dataFetchedRef.current = true;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [initialFoodBanks]);
+
+  // Initial data fetch - only once when component mounts
+  useEffect(() => {
+    if (!dataFetchedRef.current) {
+      fetchFoodBanks();
+    }
+  }, [fetchFoodBanks]);
+
+  // Apply filters and search when criteria change
+  useEffect(() => {
+    // Skip filtering if data isn't loaded yet
+    if (foodBanks.length === 0) return;
+    
+    // Apply filters
+    let results = [...foodBanks];
     
     // Apply text search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       results = results.filter(foodBank => 
-        foodBank.name?.toLowerCase().includes(query) || 
-        foodBank.address?.toLowerCase().includes(query)
+        (foodBank.name?.toLowerCase().includes(query)) || 
+        (foodBank.address?.toLowerCase().includes(query))
       );
     }
     
@@ -113,23 +181,19 @@ export default function FoodBankMap({ initialFoodBanks = [] }) {
       results = results.filter(foodBank => foodBank.wheelchairAccessible === true);
     }
     
-    // Compare IDs instead of the whole objects to prevent infinite loops
-    const currentIds = results.map(fb => fb._id).join(',');
-    const prevIds = prevFilteredRef.current.map(fb => fb._id).join(',');
-    
-    if (currentIds !== prevIds) {
-      setFilteredFoodBanks(results);
-      prevFilteredRef.current = results;
-    }
+    setFilteredFoodBanks(results);
   }, [searchQuery, filters, foodBanks]);
 
+  // Handle map loading
   const onLoad = useCallback(function callback(map) {
     console.log("Map loaded successfully");
     setMap(map);
+    setMapLoaded(true);
   }, []);
 
   const onUnmount = useCallback(function callback() {
     setMap(null);
+    setMapLoaded(false);
   }, []);
 
   const toggleFilter = (filterName) => {
@@ -139,8 +203,29 @@ export default function FoodBankMap({ initialFoodBanks = [] }) {
     }));
   };
 
+  // Handle retry if fetch failed
+  const handleRetry = () => {
+    dataFetchedRef.current = false;
+    fetchFoodBanks();
+  };
+
+  if (loadError) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+          <h2 className="text-2xl font-bold text-red-600">Google Maps Error</h2>
+          <p className="mt-2 text-gray-600">We encountered an error loading the map. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoaded) {
-    return <div className="flex justify-center items-center h-96">Loading Maps...</div>;
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
@@ -150,6 +235,29 @@ export default function FoodBankMap({ initialFoodBanks = [] }) {
           <h2 className="text-2xl font-bold">Find Food Banks Near You</h2>
           <p className="mt-2">Locate food assistance services in your area</p>
         </div>
+        
+        {fetchError && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">
+                  Error loading food banks: {fetchError}
+                </p>
+                <button 
+                  onClick={handleRetry}
+                  className="mt-2 text-sm font-medium text-red-700 hover:text-red-600"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="p-6 border-b border-gray-200">
           {/* Search and Filter UI */}
@@ -239,25 +347,24 @@ export default function FoodBankMap({ initialFoodBanks = [] }) {
                     elementType: "labels",
                     stylers: [{ visibility: "off" }]
                   }
-                ]
+                ],
+                fullscreenControl: false
               }}
             >
-              {isLoaded && filteredFoodBanks.map((foodBank, index) => {
+              {/* Only render markers when map is loaded and we have data */}
+              {isLoaded && mapLoaded && !isLoading && filteredFoodBanks.map((foodBank, index) => {
                 // Verify we have valid position data
                 if (foodBank?.position?.lat && foodBank?.position?.lng) {
                   return (
                     <Marker
                       key={foodBank._id || `marker-${index}`}
-                      position={foodBank.position}
+                      position={{
+                        lat: Number(foodBank.position.lat),
+                        lng: Number(foodBank.position.lng)
+                      }}
                       onClick={() => setSelectedFoodBank(foodBank)}
-                      // Using a simple marker for reliability
                       icon={{
-                        path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-                        scale: 6,
-                        fillColor: "#0066CC",
-                        fillOpacity: 1,
-                        strokeWeight: 1,
-                        strokeColor: "#FFFFFF",
+                        url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
                       }}
                     />
                   );
@@ -273,7 +380,7 @@ export default function FoodBankMap({ initialFoodBanks = [] }) {
                   <div className="p-3 max-w-xs">
                     <h3 className="font-bold text-lg text-blue-700">{selectedFoodBank.name}</h3>
                     <p className="text-sm mb-1">{selectedFoodBank.address}</p>
-                    <p className="text-sm font-medium mb-1">Hours: {selectedFoodBank.hours}</p>
+                    {selectedFoodBank.hours && <p className="text-sm font-medium mb-1">Hours: {selectedFoodBank.hours}</p>}
                     
                     {/* Additional details */}
                     <div className="flex flex-wrap gap-1 my-2">
@@ -323,7 +430,12 @@ export default function FoodBankMap({ initialFoodBanks = [] }) {
             <div className="p-4">
               <h3 className="font-medium text-gray-900 mb-4">Food Bank List</h3>
               
-              {filteredFoodBanks.length === 0 ? (
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-500">Loading food banks...</p>
+                </div>
+              ) : filteredFoodBanks.length === 0 ? (
                 <div className="text-center py-8">
                   <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />

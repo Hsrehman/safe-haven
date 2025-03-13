@@ -102,6 +102,10 @@ export async function POST(request) {
       for (const keyword of keywords) {
         if (query.includes(keyword)) {
           score += 1;
+          // Give extra weight to exact matches or phrases
+          if (query === keyword || query.includes(` ${keyword} `)) {
+            score += 2;
+          }
         }
       }
       return score;
@@ -111,7 +115,7 @@ export async function POST(request) {
     for (const [category, data] of Object.entries(responses)) {
       if (data.keywords && matchScore(query, data.keywords) > 0) {
         return new Response(JSON.stringify({ 
-          response: data.response,
+          message: data.response,
           category,
           type: "text",
           timestamp: new Date().toISOString()
@@ -148,7 +152,7 @@ export async function POST(request) {
       };
       
       return new Response(JSON.stringify({ 
-        response: topicResponses[bestTopic],
+        message: topicResponses[bestTopic],
         topic: bestTopic,
         confidence: highestScore,
         type: "text",
@@ -161,7 +165,7 @@ export async function POST(request) {
     
     // Default response if no match found
     return new Response(JSON.stringify({ 
-      response: "I'm not sure I understand your question. You can ask me about shelters, food resources, healthcare, mental health support, or visit our [Help Center](/help) for more information. Could you try rephrasing your question?",
+      message: "I'm not sure I understand your question. You can ask me about shelters, food resources, healthcare, mental health support, or visit our [Help Center](/help) for more information. Could you try rephrasing your question?",
       type: "text",
       timestamp: new Date().toISOString()
     }), { 
@@ -172,7 +176,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Chatbot API error:", error);
     return new Response(JSON.stringify({
-      response: "Sorry, I encountered an error. Please try again later.",
+      message: "Sorry, I encountered an error. Please try again later.",
       error: error.message,
       timestamp: new Date().toISOString()
     }), { 
