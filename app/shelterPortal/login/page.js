@@ -37,11 +37,14 @@ export default function LoginPage() {
 
       script.onload = () => {
         logger.dev('Google script loaded, origin:', window.location.origin);
-        window.google?.accounts.id.initialize({
+        window.google?.accounts.oauth2.initTokenClient({
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          scope: 'email profile',
           callback: handleGoogleResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true
+          error_callback: (error) => {
+            logger.error(error, 'Google OAuth Error');
+            setErrors({ general: 'Failed to authenticate with Google' });
+          }
         });
       };
 
@@ -53,21 +56,27 @@ export default function LoginPage() {
     loadGoogleScript();
   }, []);
 
-  const handleGoogleResponse = async (response) => {
+  const handleGoogleResponse = async (tokenResponse) => {
     try {
       setIsLoading(true);
+      
+      if (tokenResponse.error) {
+        throw new Error(tokenResponse.error);
+      }
+
       const res = await fetch('/api/shelterAdmin/google-auth', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
+        body: JSON.stringify({ 
+          access_token: tokenResponse.access_token 
+        }),
         credentials: 'include'
       });
 
       const data = await res.json();
       if (data.success) {
         if (data.message === "complete_registration") {
-          const decoded = JSON.parse(atob(response.credential.split('.')[1]));
-          router.push(`/shelterPortal/register?email=${decoded.email}&name=${decoded.name}&provider=google`);
+          router.push(`/shelterPortal/register?email=${data.email}&name=${data.name}&provider=google`);
         } else if (data.message === "Enter OTP") {
           setShowOTP(true);
         } else {
@@ -77,6 +86,7 @@ export default function LoginPage() {
         setErrors({ general: data.message || 'Google authentication failed' });
       }
     } catch (error) {
+      logger.error(error, 'Google Auth Response');
       setErrors({ general: 'Failed to authenticate with Google' });
     } finally {
       setIsLoading(false);
@@ -84,15 +94,21 @@ export default function LoginPage() {
   };
 
   const handleGoogleClick = () => {
-    if (!window.google?.accounts?.id) {
+    if (!window.google?.accounts?.oauth2) {
       logger.error(new Error('Google Sign-In not initialized'), 'Login - handleGoogleClick');
       return;
     }
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        logger.dev('Google Sign-In prompt not displayed:', notification.getNotDisplayedReason());
-      }
-    });
+    try {
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        scope: 'email profile',
+        callback: handleGoogleResponse,
+      });
+      tokenClient.requestAccessToken();
+    } catch (error) {
+      logger.error(error, 'Google Click Handler');
+      setErrors({ general: 'Failed to initialize Google Sign-In' });
+    }
   };
 
   const handleChange = (e) => {
@@ -117,7 +133,7 @@ export default function LoginPage() {
       setErrors(validationErrors);
       return;
     }
-
+  
     setIsLoading(true);
     try {
       logger.dev('Login attempt:', sanitizeData({ email: formData.email }));
@@ -132,8 +148,16 @@ export default function LoginPage() {
       
       logger.dev('Login response:', sanitizeData(data));
       
-      if (response.ok) setShowOTP(true);
-      else setErrors({ general: data.message || "Login failed" });
+      if (response.ok) {
+        setErrors({});
+        if (data.message === "Enter OTP") {
+          setShowOTP(true);
+        } else {
+          window.location.href = "/shelterPortal/dashboard";
+        }
+      } else {
+        setErrors({ general: data.message || "Login failed" });
+      }
     } catch (error) {
       logger.error(error, 'Login Page');
       setErrors({ general: "An error occurred while logging in" });

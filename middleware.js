@@ -39,7 +39,9 @@ export async function middleware(request) {
     '/shelterPortal/dashboard',
     '/api/shelterAdmin/dashboard',
     '/shelterPortal/change-password',
-    '/api/shelterAdmin/change-password'
+    '/api/shelterAdmin/change-password',
+    '/api/shelterAdmin/update-profile',
+    '/api/shelterAdmin/verify-email-change'
   ];
   
   
@@ -116,6 +118,8 @@ export const config = {
     '/shelterPortal/dashboard/:path*',
     '/api/shelterAdmin/dashboard/:path*',
     '/shelterPortal/change-password',
-    '/api/shelterAdmin/change-password'
+    '/api/shelterAdmin/change-password',
+    '/api/shelterAdmin/update-profile',
+    '/api/shelterAdmin/verify-email-change'
   ]
 };

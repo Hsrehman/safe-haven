@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { UserService } from "@/lib/auth/userService";
 import logger from '@/app/utils/logger';
 import { sanitizeData } from '@/app/utils/sanitizer';
 
@@ -7,36 +8,46 @@ export async function GET(request) {
     logger.dev('Dashboard API Request');
     
     
-    const headers = {
-      userId: request.headers.get('X-User-Id'),
-      shelterId: request.headers.get('X-Shelter-Id'),
-      userRole: request.headers.get('X-User-Role'),
-      isVerified: request.headers.get('X-Is-Verified') === 'true',
-      adminName: request.headers.get('X-Admin-Name')
-    };
+    const userId = request.headers.get('X-User-Id');
     
-    logger.dev('Headers received:', sanitizeData(headers));
-    
-    if (!headers.userId || !headers.shelterId) {
-      logger.dev('Missing required headers');
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' }, 
         { status: 401 }
       );
     }
+
     
+    const userData = await UserService.loadUserById(userId);
+    
+    if (!userData) {
+      return NextResponse.json(
+        { success: false, message: 'User not found' }, 
+        { status: 404 }
+      );
+    }
+
+    
+    const sanitizedUserData = {
+      id: userData._id.toString(),
+      adminName: userData.adminName,
+      email: userData.email,
+      phone: userData.phone || null,
+      role: userData.role || 'admin',
+      shelterId: userData.shelterId.toString(),
+      isVerified: userData.isVerified,
+      createdAt: userData.createdAt,
+      authProvider: userData.authProvider,
+      twoFactorEnabled: userData.twoFactorEnabled || false
+    };
+
+    logger.dev('Dashboard data:', sanitizeData(sanitizedUserData));
     
     return NextResponse.json({
       success: true,
       data: {
-        message: `Welcome to your dashboard, ${headers.adminName || 'Admin'}!`,
-        user: {
-          id: headers.userId,
-          shelterId: headers.shelterId,
-          role: headers.userRole || 'admin',
-          isVerified: headers.isVerified,
-          adminName: headers.adminName
-        }
+        message: `Welcome to your dashboard, ${sanitizedUserData.adminName}!`,
+        user: sanitizedUserData
       }
     });
   } catch (error) {
