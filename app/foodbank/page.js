@@ -1,103 +1,135 @@
-"useClient";
-function App() {
-    const [reviews, setReviews] = React.useState([]);
-    const [polls, setPolls] = React.useState([]);
-    const [userFeedback, setUserFeedback] = React.useState('');
-    const [selectedPoll, setSelectedPoll] = React.useState(null);
-  
-    // Simulate initial data
-    React.useEffect(() => {
-      setReviews([
-        { id: 1, text: "Great service, very helpful staff!", rating: 5 },
-        { id: 2, text: "Quick and efficient process", rating: 4 }
-      ]);
-  
-      setPolls([
-        { id: 1, question: "How satisfied are you with our service?", options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied"] },
-        { id: 2, question: "What time of day works best for you?", options: ["Morning", "Afternoon", "Evening"] }
-      ]);
-    }, []);
-  
-    const handleFeedbackSubmit = () => {
-      if (userFeedback.trim()) {
-        setReviews([...reviews, { id: reviews.length + 1, text: userFeedback, rating: 5 }]);
-        setUserFeedback('');
-        alert('Thank you for your feedback!');
+"use client";
+import { useState, useEffect } from 'react';
+
+export default function Foodbank() {
+  const [polls, setPolls] = useState([]);
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    fetchPolls();
+  }, []);
+
+  const fetchPolls = async () => {
+    try {
+      const response = await fetch('/api/foodbank-dashboard');
+      const data = await response.json();
+      if (data.success) {
+        setPolls(data.polls);
+      } else {
+        setError('Failed to fetch polls');
       }
-    };
-  
-    const handlePollSubmit = () => {
-      if (selectedPoll) {
-        alert('Thank you for participating in the poll!');
-        setSelectedPoll(null);
+      setLoading(false);
+    } catch (err) {
+      setError('Error loading polls');
+      setLoading(false);
+    }
+  };
+
+  const handleOptionSelect = (pollId, option) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [pollId]: option
+    }));
+  };
+
+  const handlePollSubmit = async (pollId) => {
+    if (!selectedOptions[pollId]) {
+      setError('Please select an option before submitting');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/foodbank-dashboard/polls', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pollId,
+          selectedOption: selectedOptions[pollId]
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setMessage('Thank you for your response!');
+        // Clear selection for this poll
+        setSelectedOptions(prev => {
+          const newOptions = { ...prev };
+          delete newOptions[pollId];
+          return newOptions;
+        });
+        // Refresh polls to show updated results
+        fetchPolls();
+      } else {
+        setError(data.message || 'Failed to submit response');
       }
-    };
-  
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-8 text-blue-600">Foodbank User Dashboard</h1>
-  
-        {/* Reviews Section */}
-        <div className="mb-8 bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Community Reviews</h2>
-          <div className="space-y-4">
-            {reviews.map((review) => (
-              <div key={review.id} className="border-b pb-3">
-                <p className="text-gray-700">{review.text}</p>
-                <div className="text-yellow-500 mt-1">
-                  {'★'.repeat(review.rating)}{'☆'.repeat(5-review.rating)}
-                </div>
-              </div>
-            ))}
-          </div>
+    } catch (err) {
+      setError('Error submitting response');
+    }
+  };
+
+  if (loading) return <div className="text-center p-4">Loading...</div>;
+
+  return (
+    <div className="container mx-auto p-4">
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative">
+          {error}
+          <button onClick={() => setError(null)} className="absolute top-0 right-0 px-4 py-3">×</button>
         </div>
-  
-        {/* Feedback Section */}
-        <div className="mb-8 bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Share Your Experience</h2>
-          <textarea
-            className="w-full p-3 border rounded-lg mb-4 h-32"
-            placeholder="Share your feedback about our foodbank..."
-            value={userFeedback}
-            onChange={(e) => setUserFeedback(e.target.value)}
-          />
-          <button
-            onClick={handleFeedbackSubmit}
-            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            Submit Feedback
-          </button>
+      )}
+      {message && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 relative">
+          {message}
+          <button onClick={() => setMessage('')} className="absolute top-0 right-0 px-4 py-3">×</button>
         </div>
-  
-        {/* Polls Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Active Polls</h2>
-          {polls.map((poll) => (
-            <div key={poll.id} className="mb-6 last:mb-0">
-              <p className="font-medium mb-3">{poll.question}</p>
+      )}
+
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4">Active Polls</h2>
+        {polls.length > 0 ? (
+          polls.map((poll) => (
+            <div key={`poll-${poll._id}`} className="mb-6 last:mb-0 border-b pb-6">
+              <h3 className="font-medium mb-4">{poll.question}</h3>
               <div className="space-y-2">
                 {poll.options.map((option, index) => (
-                  <div key={index} className="flex items-center">
+                  <div key={`${poll._id}-option-${index}`} className="flex items-center">
                     <input
                       type="radio"
-                      id={`${poll.id}-${index}`}
-                      name={`poll-${poll.id}`}
+                      id={`${poll._id}-${index}`}
+                      name={`poll-${poll._id}`}
+                      value={option}
+                      onChange={() => handleOptionSelect(poll._id, option)}
+                      checked={selectedOptions[poll._id] === option}
                       className="mr-2"
-                      onChange={() => setSelectedPoll({ pollId: poll.id, option })}
                     />
-                    <label htmlFor={`${poll.id}-${index}`}>{option}</label>
+                    <label htmlFor={`${poll._id}-${index}`} className="flex-grow">
+                      {option}
+                    </label>
                   </div>
                 ))}
               </div>
+              <button
+                onClick={() => handlePollSubmit(poll._id)}
+                className={`mt-4 px-4 py-2 rounded ${
+                  selectedOptions[poll._id]
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                disabled={!selectedOptions[poll._id]}
+              >
+                Submit Response
+              </button>
             </div>
-          ))}
-          <button
-            onClick={handlePollSubmit}
-            className="mt-4 bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"
-          >
-            Submit Poll Response
-          </button>
-        </div>
+          ))
+        ) : (
+          <p className="text-gray-500 text-center">No active polls at the moment.</p>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+}
