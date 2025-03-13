@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import PollsSection from '../PollsSection/components/admin/PollsSection';
+import PollsSection from '@/components/admin/PollsSection';
 import ReviewsSection from '@/components/admin/ReviewsSection';
 
 export default function FoodbankAdmin() {
