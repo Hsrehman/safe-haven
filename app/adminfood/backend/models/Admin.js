@@ -1,9 +1,34 @@
-const mongoose = require("mongoose");
 
-const AdminSchema = new mongoose.Schema({
-  companyName: { type: String, required: true },
-  companyEmail: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+import mongoose from 'mongoose';
+
+const AdminFoodSchema = new mongoose.Schema({
+  ownerName: { type: String, required: true },
+  email: { type: String, required: true },
+  foodType: [String],
+  addressNumber: String,
+  addressPostcode: String,
+  addressCity: String,
+  allowedGenders: [String],
+  provideTakeaway: String,
+  openOnHolidays: String,
+  seatingArrangement: {
+    hasSeating: String,
+    seatingCapacity: Number
+  },
+  religionPolicy: {
+    allowAllReligions: String,
+    allowedReligions: String,
+  }
+  busyTimes: {
+    type: Map,
+    of: {
+      type: Map,
+      of: Number
+    }
+  },
+  contactNumber: String
+}, {
+  timestamps: true
 });
 
-module.exports = mongoose.model("Admin", AdminSchema);
+export default mongoose.models.AdminFood || mongoose.model('AdminFood', AdminFoodSchema);

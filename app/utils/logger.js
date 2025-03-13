@@ -1,26 +1,44 @@
+const sanitizeData = (data) => {
+  if (!data) return data;
+  
+  const sensitiveFields = ['password', 'token', 'secret', 'key', 'credential'];
+  const sanitized = { ...data };
+
+  Object.keys(sanitized).forEach(key => {
+    if (sensitiveFields.some(field => key.toLowerCase().includes(field))) {
+      sanitized[key] = '[REDACTED]';
+    }
+  });
+
+  return sanitized;
+};
+
 const logger = {
-  dev: (...args) => {
-    if (process.env.NODE_ENV === 'development') {
-      const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] [Dev]`, ...args);
+  dev: (message, data = {}) => {
+
+    if (process.env.DEBUG_LOGS === 'true') {
+      console.log(`[${new Date().toISOString()}] [Dev] ${message}`, sanitizeData(data));
     }
   },
   
   error: (error, context = '') => {
-    const errorData = {
+    const timestamp = new Date().toISOString();
+    const errorData = error instanceof Error ? {
       message: error.message,
-      context,
-      timestamp: new Date().toISOString(),
-      path: error.stack?.split('\n')[1]?.trim() || 'Unknown',
-      code: error.code || 'UNKNOWN_ERROR'
-    };
+      stack: error.stack,
+      timestamp,
+      ...error
+    } : error;
 
-    if (process.env.NODE_ENV === 'production') {
-      
-      console.error(sanitizeData(errorData));
+    if (typeof errorData === 'object' && errorData !== null) {
+      console.error(`[${timestamp}] [Error] [${context}]`, sanitizeData(errorData));
     } else {
-      console.error(`[${errorData.timestamp}] [Error] [${context}]`, errorData);
+      console.error(`[${timestamp}] [Error] [${context}]`, error);
     }
+  },
+  
+  info: (message, data = {}) => {
+    console.log(`[${new Date().toISOString()}] [Info] ${message}`, sanitizeData(data));
   },
   
   performance: (label, duration) => {

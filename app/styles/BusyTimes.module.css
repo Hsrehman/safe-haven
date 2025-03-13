@@ -125,36 +125,43 @@
   height: 200px;
   position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
+  margin: 2rem 0;
 }
 
 .graphBars {
   flex: 1;
   display: flex;
+  gap: 8px;
   height: 100%;
-  gap: 4px;
+  padding-bottom: 1.5rem;
 }
 
 .busyTimesSlider {
-  writing-mode: bt-lr;
-  -webkit-appearance: slider-vertical;
+  position: absolute;
   width: 100%;
   height: 100%;
-  background: transparent;
-}
-
-.busyTimesSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  background: #4F46E5;
-  border-radius: 50%;
+  opacity: 0;
   cursor: pointer;
 }
 
-.busyTimesSlider::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 100%;
-  background: #374151;
-  border-radius: 4px;
+.dayButton {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  border-radius: 0.25rem;
+}
+
+.dayButtonActive {
+  color: #3B82F6;
+  border-bottom: 2px solid #3B82F6;
+  font-weight: 500;
+}
+
+.dayButtonInactive {
+  color: #9CA3AF;
+}
+
+.dayButtonInactive:hover {
+  color: #D1D5DB;
 }

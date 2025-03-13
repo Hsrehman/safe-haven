@@ -32,7 +32,7 @@ export default function Home() {
       setActiveSlide((prevSlide) =>
         prevSlide === carouselItems.length - 1 ? 0 : prevSlide + 1
       );
-    }, 4000);
+    }, 3500);
 
     return () => clearInterval(interval);
   }, [carouselItems.length]);
