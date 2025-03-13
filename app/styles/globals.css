@@ -11,7 +11,6 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
-    --foreground: #ededed;
   }
 }
 
@@ -19,6 +18,7 @@ body {
   color: var(--foreground);
   background: var(--background);
 }
+/* Form styles from dev branch */
 .form-container {
   @apply bg-white rounded-xl shadow-2xl p-8;
   width: 1000px;
@@ -35,4 +35,60 @@ body {
 
 .social-btn {
   @apply p-3 rounded-full text-white transition-colors;
+}
+
+/* Container and general styles from main branch */
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+/* Heading styles */
+h1 {
+  margin-bottom: 20px;
+  font-size: 2rem;
+  text-align: center;
+  color: #2c3e50;
+}
+
+/* Select element styles */
+select:focus {
+  border-color: #3498db;
+}
+
+select:hover {
+  background-color: #f1f1f1;
+}
+
+/* Map container styles */
+.map-container {
+  margin-top: 20px;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Info window styles */
+.info-window {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.info-window h4 {
+  margin-bottom: 5px;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+.info-window a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.info-window a:hover {
+  text-decoration: underline;
 }

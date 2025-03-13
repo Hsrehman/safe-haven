@@ -1,193 +1,168 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import bcrypt from "bcrypt";
-import crypto from "crypto";
-import { validateForm } from "@/app/utils/shelterFormValidation";
-import validator from 'validator';
-import nodemailer from 'nodemailer';
-import { shelterFormQuestions } from "@/app/utils/shelterFormQuestions";
+import nodemailer from "nodemailer";
+import { TokenManager } from "@/lib/auth/tokenManager";
+import logger from "@/app/utils/logger";
+import { sanitizeData } from "@/app/utils/sanitizer";
+import { validateForm } from '@/app/utils/shelterFormValidation';
+import { shelterFormQuestions } from '@/app/utils/shelterFormQuestions';
+import { ObjectId } from 'mongodb';
 
 export async function POST(request) {
-  const startTime = performance.now();
-
   try {
     const shelterData = await request.json();
-
-
-    const { isValid, errors } = validateForm(
-      shelterData,
-      shelterFormQuestions
-    );
-
-    if (!isValid) {
-      console.error("[Validation Failed]:", errors);
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Validation failed",
-          errors: errors,
-          timestamp: new Date().toISOString(),
-          processingTime: (performance.now() - startTime).toFixed(2) + "ms",
-        },
-        { status: 400 }
-      );
-    }
-
-
-    for (const key in shelterData) {
-      if (typeof shelterData[key] === 'string') {
-        shelterData[key] = validator.escape(shelterData[key]);
-      }
-    }
+    logger.dev('Registration request:', sanitizeData(shelterData));
 
     const client = await clientPromise;
     const db = client.db("shelterDB");
 
-   
-    const temporaryPassword = crypto.randomBytes(20).toString("hex");
+    
+    const validationQuestions = shelterData.authProvider === 'google' 
+      ? shelterFormQuestions.filter(q => !['email', 'password', 'adminName'].includes(q.id))
+      : shelterFormQuestions;
 
     
-    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
-
-   
-    const adminUser = {
-      email: shelterData.email,
-      password: hashedPassword,
-      shelterId: null, 
-      isVerified: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const shouldShowField = (question, formData) => {
+      const conditions = {
+        customHours: () => formData.operatingHours === "Custom Hours",
+        holidayHours: () => formData.openOnHolidays === "Limited hours (please specify)",
+        medicalDetails: () => formData.hasMedical === "Yes",
+        mentalHealthDetails: () => formData.hasMentalHealth === "Yes",
+        maxFamilySize: () => formData.hasFamily === "Yes",
+        nrpfDetails: () => formData.acceptNRPF === "In certain circumstances (please specify)",
+        allowedReligions: () => formData.allowAllReligions === "No",
+        referralDetails: () => formData.referralRoutes?.includes("Agency referrals") || 
+                              formData.referralRoutes?.includes("Other (please specify)"),
+        serviceCharges: () => formData.housingBenefitAccepted?.startsWith("Yes"),
+      };
+      return conditions[question.id] ? conditions[question.id]() : true;
     };
 
-    const shelterDocument = {
-      ...shelterData,
-      registeredAt: new Date(),
-      status: "pending",
-      accountStatus: "active",
-      metadata: {
-        userAgent: request.headers.get("user-agent"),
-        submittedAt: new Date().toISOString(),
-        processingTime: (performance.now() - startTime).toFixed(2) + "ms",
-        lastUpdated: new Date().toISOString(),
-      },
-
-      
-      
-
-      services: {
-        medical: {
-          available: shelterData.hasMedical === "Yes",
-          details: shelterData.medicalDetails || null,
-        },
-        mentalHealth: {
-          available: shelterData.mentalHealthDetails || null,
-        },
-        additionalServices: shelterData.additionalServices || [],
-      },
-
-      policies: {
-        gender: shelterData.genderPolicy,
-        lgbtqFriendly: shelterData.lgbtqFriendly === "Yes",
-        families: {
-          accepted: shelterData.hasFamily === "Yes",
-          maxSize: parseInt(shelterData.maxFamilySize) || 0,
-        },
-        pets: shelterData.petPolicy,
-        smoking: shelterData.smokingPolicy,
-      },
-
-      capacity: {
-        maximum: parseInt(shelterData.maxCapacity),
-        current:
-          parseInt(shelterData.currentCapacity) ||
-          parseInt(shelterData.maxCapacity),
-        available:
-          parseInt(shelterData.maxCapacity) -
-          (parseInt(shelterData.currentCapacity) || 0),
-      },
-
-      operatingHours: {
-        type: shelterData.operatingHours,
-        custom:
-          shelterData.operatingHours === "Custom Hours"
-            ? shelterData.customHours
-            : null,
-      },
-      accessibility: shelterData.accessibilityFeatures || [],
-    };
-
-    await db
-      .collection("shelters")
-      .createIndex({ "location.coordinates": "2dsphere" });
-
-    const result = await db.collection("shelters").insertOne(shelterDocument);
-
-
-    adminUser.shelterId = result.insertedId;
-    await db.collection("adminUsers").insertOne(adminUser);
-
-
-    const transporter = nodemailer.createTransport({
-    host: "live.smtp.mailtrap.io",
-    port: 587,
-    auth: {
-    user: "api",
-    pass: "75e0a49fbb20439b4331899c9de1390f"
+    const visibleQuestions = validationQuestions.filter(q => shouldShowField(q, shelterData));
+    
+    
+    const { isValid, errors } = validateForm(shelterData, visibleQuestions);
+    if (!isValid) {
+      logger.error({ message: 'Validation failed', errors }, 'Registration Validation');
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Invalid data', 
+        errors 
+      }, { status: 400 });
     }
-    });
 
-    const verificationToken = crypto.randomBytes(20).toString('hex');
+    
+    const existingUser = await db.collection("adminUsers").findOne({ email: shelterData.email });
+    if (existingUser) {
+      if (shelterData.authProvider === 'google' && existingUser.authProvider !== 'google') {
+        return NextResponse.json({ 
+          success: false, 
+          message: "Email already registered with a different method" 
+        }, { status: 400 });
+      }
+      if (!shelterData.isGoogleUser) {
+        return NextResponse.json({ 
+          success: false, 
+          message: "Email already exists" 
+        }, { status: 400 });
+      }
+    }
 
+    
+    const shelterId = new ObjectId();
+    const adminId = new ObjectId();
 
-    await db.collection('adminUsers').updateOne(
-      { email: adminUser.email },
-      { $set: { verificationToken: verificationToken } }
-    );
+    
+    const {
+      email,
+      adminName,
+      phone,
+      password,
+      terms,
+      infoAccuracy,
+      contactConsent,
+      ...shelterOnlyData
+    } = shelterData;
 
-    const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/api/shelterAdmin/verify-email?email=${shelterData.email}&token=${verificationToken}`;
-
-    const mailOptions = {
-      from: 'info@demomailtrap.com', 
-      to: shelterData.email, 
-      subject: 'Shelter Registration - Email Verification',
-      html: `
-        <p>Thank you for registering your shelter with us!</p>
-        <p>Your temporary password is: <strong>${temporaryPassword}</strong></p>
-        <p>Please click the following link to verify your email address:</p>
-        <a href="${verificationLink}">${verificationLink}</a>
-      `,
+    const adminDoc = {
+      _id: adminId,
+      email,
+      adminName,
+      phone,
+      shelterId: shelterId,
+      authProvider: shelterData.authProvider || 'email',
+      isVerified: shelterData.isGoogleUser,
+      registrationDate: new Date(),
+      lastLogin: new Date()
     };
 
-    await transporter.sendMail(mailOptions);
+    if (!shelterData.isGoogleUser) {
+      adminDoc.password = await bcrypt.hash(password, 10);
+      const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+      adminDoc.verificationToken = verificationToken;
 
-    return NextResponse.json({
-      success: true,
-      shelterId: result.insertedId,
-      message: "Shelter registration submitted successfully",
-      timestamp: new Date().toISOString(),
-      processingTime: (performance.now() - startTime).toFixed(2) + "ms",
-      metadata: {
-        collectionName: "shelters",
-        databaseName: "shelterDB",
-        documentCount: await db.collection("shelters").countDocuments(),
-      },
+      
+      const transporter = nodemailer.createTransport({
+        host: "smtp-relay.brevo.com",
+        port: 587,
+        auth: { user: process.env.BREVO_USER, pass: process.env.BREVO_PASS }
+      });
+
+      await transporter.sendMail({
+        from: "verify.safehaven@gmail.com",
+        to: shelterData.email,
+        subject: "Verify Your Shelter Account",
+        html: `<p>Hello ${shelterData.adminName},</p><p>Your verification code is: <strong>${verificationToken}</strong></p>`
+      });
+    }
+    
+    const shelterDoc = {
+      _id: shelterId,
+      ...shelterOnlyData,
+      adminId: adminId,
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await db.collection("shelters").insertOne(shelterDoc);
+    const adminResult = await db.collection("adminUsers").insertOne(adminDoc);
+
+    
+    if (shelterData.isGoogleUser) {
+      const tokenPayload = {
+        _id: adminResult.insertedId,
+        email: adminDoc.email,
+        adminName: adminDoc.adminName,
+        shelterId: adminDoc.shelterId,
+        isVerified: true,
+        authProvider: 'google'
+      };
+
+      logger.dev('Google registration:', sanitizeData({ tokenPayload }));
+
+      const { accessToken, refreshToken } = TokenManager.generateTokens(tokenPayload);
+      const response = NextResponse.json({ 
+        success: true, 
+        message: "Registration successful",
+        redirect: '/shelterPortal/dashboard'
+      });
+      
+      return TokenManager.setAuthCookies(response, accessToken, refreshToken);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "Registration successful, please verify your email" 
     });
+
   } catch (error) {
-    console.error("[Shelter Registration Error]:", {
-      message: error.message,
-      timestamp: new Date().toISOString(),
-      processingTime: (performance.now() - startTime).toFixed(2) + "ms",
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to register shelter",
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        processingTime: (performance.now() - startTime).toFixed(2) + "ms",
-      },
-      { status: 500 }
-    );
+    logger.error(error, 'Registration API');
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || "Registration failed",
+      error: process.env.NODE_ENV === 'development' ? error : undefined
+    }, { status: 500 });
   }
 }
