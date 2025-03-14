@@ -608,7 +608,6 @@ export default function FormPage() {
       try {
         const startTime = performance.now();
         
-        
         const response = await fetch("/api/userForm/submit-form", {
           method: "POST",
           headers: {
@@ -616,7 +615,10 @@ export default function FormPage() {
             "X-Request-Time": new Date().toISOString(),
           },
           body: JSON.stringify({
-            formData: completeFormData,
+            formData: {
+              ...completeFormData,
+              location_coordinates: formData.location_coordinates || null  
+            },
             formId: formId
           }),
         });
@@ -632,20 +634,21 @@ export default function FormPage() {
         });
 
         if (data.success) {
-          
           const storedData = localStorage.getItem('formData');
           try {
             const existingData = JSON.parse(storedData);
             const updatedData = {
               timestamp: existingData.timestamp,
-              data: completeFormData,
+              data: {
+                ...completeFormData,
+                location_coordinates: formData.location_coordinates || null  
+              },
               id: formId
             };
             localStorage.setItem('formData', JSON.stringify(updatedData));
             router.push('/form/edit-answers');
           } catch (error) {
             console.error('Error updating localStorage:', error);
-            
             router.push('/form/edit-answers');
           }
         } else {
@@ -719,12 +722,14 @@ export default function FormPage() {
         
         const submissionData = {
           timestamp: new Date().toISOString(),
-          data: completeFormData,
+          data: {
+            ...completeFormData,
+            location_coordinates: formData.location_coordinates || null  
+          },
           id: data.id
         };
         localStorage.setItem('formData', JSON.stringify(submissionData));
         localStorage.setItem('formId', data.id);
-        
         
         setFormData({});
         setFormId(null);

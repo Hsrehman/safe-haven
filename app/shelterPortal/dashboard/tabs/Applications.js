@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import logger from '@/app/utils/logger';
 
-const Applications = ({ applicationData, darkMode }) => {
+const Applications = ({ shelterId, darkMode }) => {
   
   const [applications, setApplications] = useState([]);
   const [filteredApplications, setFilteredApplications] = useState([]);
@@ -27,264 +27,116 @@ const Applications = ({ applicationData, darkMode }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        setIsLoading(true);
-        
-        
-        
-        
-        
-        
-        
-        
-        const sampleApplications = [
-          {
-            id: '1',
-            name: 'John Smith',
-            email: 'johnsmith@example.com',
-            phone: '07712345678',
-            type: 'Single Adult',
-            urgency: 'URGENT',
-            status: 'pending',
-            submittedAt: '2025-02-25T14:30:00Z',
-            lastUpdated: '2025-02-25T14:30:00Z',
-            notes: 'Applicant is currently sleeping rough and requires immediate assistance.',
-            gender: 'Male',
-            age: 42,
-            medicalConditions: 'None reported',
-            needsWheelchairAccess: false,
-            hasPets: false,
-            preferredStay: 'Long-term'
-          },
-          {
-            id: '2',
-            name: 'Maria Johnson',
-            email: 'maria.j@example.com',
-            phone: '07723456789',
-            type: 'Family of 3',
-            urgency: 'HIGH',
-            status: 'approved',
-            submittedAt: '2025-02-24T09:15:00Z',
-            lastUpdated: '2025-02-26T11:20:00Z',
-            notes: 'Family with young children, recently evicted from their home.',
-            gender: 'Female',
-            age: 35,
-            medicalConditions: 'None reported',
-            needsWheelchairAccess: false,
-            hasPets: false,
-            preferredStay: 'Long-term',
-            familyMembers: [
-              { name: 'James Johnson', relationship: 'Son', age: 8 },
-              { name: 'Emily Johnson', relationship: 'Daughter', age: 5 }
-            ]
-          },
-          {
-            id: '3',
-            name: 'Robert Williams',
-            email: 'rob.w@example.com',
-            phone: '07734567890',
-            type: 'Single Adult',
-            urgency: 'MEDIUM',
-            status: 'rejected',
-            submittedAt: '2025-02-23T16:45:00Z',
-            lastUpdated: '2025-02-24T10:30:00Z',
-            notes: 'Application rejected as the individual does not meet our criteria for support.',
-            gender: 'Male',
-            age: 29,
-            medicalConditions: 'Asthma',
-            needsWheelchairAccess: false,
-            hasPets: true,
-            petDetails: 'One small dog (Jack Russell)',
-            preferredStay: 'Short-term'
-          },
-          {
-            id: '4',
-            name: 'Sarah Thompson',
-            email: 'sarah.t@example.com',
-            phone: '07745678901',
-            type: 'Single Adult',
-            urgency: 'LOW',
-            status: 'waitlisted',
-            submittedAt: '2025-02-22T11:20:00Z',
-            lastUpdated: '2025-02-23T09:15:00Z',
-            notes: 'Currently staying with a friend but arrangement ends in 2 weeks.',
-            gender: 'Female',
-            age: 26,
-            medicalConditions: 'None reported',
-            needsWheelchairAccess: false,
-            hasPets: false,
-            preferredStay: 'Short-term'
-          },
-          {
-            id: '5',
-            name: 'David Chen',
-            email: 'david.c@example.com',
-            phone: '07756789012',
-            type: 'Single Adult',
-            urgency: 'HIGH',
-            status: 'pending',
-            submittedAt: '2025-02-21T14:10:00Z',
-            lastUpdated: '2025-02-21T14:10:00Z',
-            notes: 'Recently released from hospital, needs stable accommodation.',
-            gender: 'Male',
-            age: 45,
-            medicalConditions: 'Diabetes, Recent Surgery',
-            needsWheelchairAccess: true,
-            hasPets: false,
-            preferredStay: 'Long-term'
-          },
-          {
-            id: '6',
-            name: 'Emma Wilson',
-            email: 'emma.w@example.com',
-            phone: '07767890123',
-            type: 'Single Parent',
-            urgency: 'HIGH',
-            status: 'approved',
-            submittedAt: '2025-02-20T09:30:00Z',
-            lastUpdated: '2025-02-21T16:45:00Z',
-            notes: 'Single mother with one child, fleeing domestic violence.',
-            gender: 'Female',
-            age: 31,
-            medicalConditions: 'Anxiety',
-            needsWheelchairAccess: false,
-            hasPets: false,
-            preferredStay: 'Long-term',
-            familyMembers: [
-              { name: 'Olivia Wilson', relationship: 'Daughter', age: 4 }
-            ]
-          },
-          {
-            id: '7',
-            name: 'Michael Brown',
-            email: 'michael.b@example.com',
-            phone: '07778901234',
-            type: 'Single Adult',
-            urgency: 'MEDIUM',
-            status: 'pending',
-            submittedAt: '2025-02-19T15:20:00Z',
-            lastUpdated: '2025-02-19T15:20:00Z',
-            notes: 'Recently lost job and facing eviction at end of month.',
-            gender: 'Male',
-            age: 37,
-            medicalConditions: 'None reported',
-            needsWheelchairAccess: false,
-            hasPets: false,
-            preferredStay: 'Short-term'
-          },
-          {
-            id: '8',
-            name: 'Jessica Davis',
-            email: 'jessica.d@example.com',
-            phone: '07789012345',
-            type: 'Single Adult',
-            urgency: 'LOW',
-            status: 'waitlisted',
-            submittedAt: '2025-02-18T10:15:00Z',
-            lastUpdated: '2025-02-19T11:30:00Z',
-            notes: 'Currently couch surfing, seeking more stable accommodation.',
-            gender: 'Female',
-            age: 24,
-            medicalConditions: 'None reported',
-            needsWheelchairAccess: false,
-            hasPets: false,
-            preferredStay: 'Long-term'
-          },
-          {
-            id: '9',
-            name: 'Daniel Taylor',
-            email: 'daniel.t@example.com',
-            phone: '07790123456',
-            type: 'Single Adult',
-            urgency: 'HIGH',
-            status: 'rejected',
-            submittedAt: '2025-02-17T14:45:00Z',
-            lastUpdated: '2025-02-18T09:20:00Z',
-            notes: 'Application rejected due to previous behavioral issues at other shelters.',
-            gender: 'Male',
-            age: 41,
-            medicalConditions: 'Substance use disorder',
-            needsWheelchairAccess: false,
-            hasPets: false,
-            preferredStay: 'Short-term'
-          },
-          {
-            id: '10',
-            name: 'Sophia Martinez',
-            email: 'sophia.m@example.com',
-            phone: '07801234567',
-            type: 'Family of 4',
-            urgency: 'URGENT',
-            status: 'approved',
-            submittedAt: '2025-02-16T09:10:00Z',
-            lastUpdated: '2025-02-17T14:30:00Z',
-            notes: 'Family lost home in apartment fire, emergency placement needed.',
-            gender: 'Female',
-            age: 38,
-            medicalConditions: 'None reported',
-            needsWheelchairAccess: false,
-            hasPets: false,
-            preferredStay: 'Long-term',
-            familyMembers: [
-              { name: 'Carlos Martinez', relationship: 'Husband', age: 40 },
-              { name: 'Luis Martinez', relationship: 'Son', age: 10 },
-              { name: 'Isabella Martinez', relationship: 'Daughter', age: 7 }
-            ]
-          },
-          {
-            id: '11',
-            name: 'William Harris',
-            email: 'william.h@example.com',
-            phone: '07812345678',
-            type: 'Elderly',
-            urgency: 'HIGH',
-            status: 'pending',
-            submittedAt: '2025-02-15T11:30:00Z',
-            lastUpdated: '2025-02-15T11:30:00Z',
-            notes: 'Elderly gentleman being discharged from hospital with nowhere to go.',
-            gender: 'Male',
-            age: 72,
-            medicalConditions: 'Arthritis, Heart condition',
-            needsWheelchairAccess: true,
-            hasPets: false,
-            preferredStay: 'Long-term'
-          },
-          {
-            id: '12',
-            name: 'Olivia Clark',
-            email: 'olivia.c@example.com',
-            phone: '07823456789',
-            type: 'Single Adult',
-            urgency: 'MEDIUM',
-            status: 'waitlisted',
-            submittedAt: '2025-02-14T15:40:00Z',
-            lastUpdated: '2025-02-15T10:25:00Z',
-            notes: 'Recently moved to the area for work, temporary accommodation needed until salary begins.',
-            gender: 'Female',
-            age: 27,
-            medicalConditions: 'None reported',
-            needsWheelchairAccess: false,
-            hasPets: false,
-            preferredStay: 'Short-term'
-          }
-        ];
-        
-        setApplications(sampleApplications);
-        applyFilters(sampleApplications, searchQuery, statusFilter, urgencyFilter);
-        
-        setIsLoading(false);
+  
+  const notifyApplicationsUpdate = (applications) => {
+    const pendingCount = applications.filter(app => app.status === 'pending').length;
+    const event = new CustomEvent('applicationsUpdate', { 
+      detail: { 
+        applications,
+        pendingCount
+      }
+    });
+    window.dispatchEvent(event);
+  };
+  
+  const fetchApplications = async (showRefreshIndicator = false) => {
+    try {
+      if (showRefreshIndicator) {
+        setIsRefreshing(true);
+      }
+      
+      const response = await fetch(`/api/shelterAdmin/shelter-applications?shelterId=${shelterId}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch applications');
+      }
+      
+      const transformedApplications = data.applications.map(app => ({
+        id: app._id,
+        name: app.name,
+        email: app.email,
+        phone: app.phone,
+        type: app.type,
+        urgency: app.urgency,
+        status: app.status,
+        submittedAt: app.submittedAt,
+        lastUpdated: app.lastUpdated,
+        notes: app.notes,
+        gender: app.gender,
+        dob: app.dob,
+        language: app.language,
+        location: app.location,
+        sleepingRough: app.sleepingRough,
+        homelessDuration: app.homelessDuration,
+        groupType: app.groupType,
+        groupSize: app.groupSize,
+        childrenCount: app.childrenCount,
+        previousAccommodation: app.previousAccommodation,
+        reasonForLeaving: app.reasonForLeaving,
+        shelterType: app.shelterType,
+        securityNeeded: app.securityNeeded,
+        curfew: app.curfew,
+        communalLiving: app.communalLiving,
+        smoking: app.smoking,
+        foodAssistance: app.foodAssistance,
+        benefitsHelp: app.benefitsHelp,
+        mentalHealth: app.mentalHealth,
+        substanceUse: app.substanceUse,
+        socialServices: app.socialServices,
+        domesticAbuse: app.domesticAbuse,
+        medicalConditions: app.medicalConditions,
+        wheelchair: app.wheelchair,
+        immigrationStatus: app.immigrationStatus,
+        benefits: app.benefits,
+        localConnection: app.localConnection,
+        careLeaver: app.careLeaver,
+        veteran: app.veteran,
+        pets: app.pets,
+        petDetails: app.petDetails,
+        womenOnly: app.womenOnly,
+        lgbtqFriendly: app.lgbtqFriendly,
+        supportWorkers: app.supportWorkers,
+        supportWorkerDetails: app.supportWorkerDetails,
+        terms: app.terms,
+        dataConsent: app.dataConsent,
+        contactConsent: app.contactConsent
+      }));
+      
+      setApplications(transformedApplications);
+      applyFilters(transformedApplications, searchQuery, statusFilter, urgencyFilter);
+      
+      
+      notifyApplicationsUpdate(transformedApplications);
+      
       } catch (error) {
         logger.error(error, 'Applications - fetchApplications');
         setError('Failed to load applications');
+    } finally {
         setIsLoading(false);
+      if (showRefreshIndicator) {
+        setIsRefreshing(false);
+      }
       }
     };
     
+  useEffect(() => {
+    if (shelterId) {
     fetchApplications();
-  }, [applicationData]);
+
+      
+      const refreshInterval = setInterval(() => {
+        fetchApplications();
+      }, 15000); 
+
+      
+      return () => clearInterval(refreshInterval);
+    } else {
+      setIsLoading(false);
+    }
+  }, [shelterId]);
   
   
   useEffect(() => {
@@ -380,24 +232,42 @@ const Applications = ({ applicationData, darkMode }) => {
   };
   
   
-  const handleStatusChange = (applicationId, newStatus) => {
-    
-    
-    
-    
-    
-    
-    
-    
+  const handleStatusChange = async (applicationId, newStatus) => {
+    try {
+      const response = await fetch('/api/shelterAdmin/shelter-applications/update-status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          applicationId,
+          shelterId,
+          newStatus,
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update status');
+      }
     
     const updatedApplications = applications.map(app => 
-      app.id === applicationId ? { ...app, status: newStatus, lastUpdated: new Date().toISOString() } : app
+        app.id === applicationId 
+          ? { ...app, status: newStatus, lastUpdated: new Date().toISOString() } 
+          : app
     );
     
     setApplications(updatedApplications);
     
     if (selectedApplication && selectedApplication.id === applicationId) {
       setSelectedApplication({ ...selectedApplication, status: newStatus });
+      }
+
+      
+      notifyApplicationsUpdate(updatedApplications);
+
+    } catch (error) {
+      logger.error(error, 'Applications - handleStatusChange');
+      alert('Failed to update application status. Please try again.');
     }
   };
   
@@ -449,8 +319,9 @@ const Applications = ({ applicationData, darkMode }) => {
   
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading applications...</p>
       </div>
     );
   }
@@ -465,6 +336,68 @@ const Applications = ({ applicationData, darkMode }) => {
     );
   }
   
+  if (!isLoading && applications.length === 0) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+            Applications Management
+          </h1>
+          <div className="flex space-x-2">
+            <button 
+              onClick={() => fetchApplications(true)}
+              className={`px-4 py-2 ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white rounded-lg flex items-center`}
+              disabled={isRefreshing}
+            >
+              <RefreshCw size={16} className={`mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+        </div>
+
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-xl p-8 text-center`}>
+          <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+            darkMode ? 'bg-gray-700' : 'bg-gray-100'
+          }`}>
+            <UserPlus className={`h-8 w-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+          </div>
+          
+          <h3 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-800'} mb-3`}>
+            No Applications Yet
+          </h3>
+          
+          <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-6 max-w-md mx-auto`}>
+            Your shelter hasn't received any applications yet. Applications will appear here when people apply to your shelter through the Safe Haven platform.
+          </p>
+          
+          <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto ${
+            darkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>
+            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <h4 className="font-medium mb-2">What to Expect</h4>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                When someone applies, you'll receive notifications and can review their details here.
+              </p>
+            </div>
+            
+            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <h4 className="font-medium mb-2">Managing Applications</h4>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                You can approve, reject, or waitlist applications, and communicate with applicants directly.
+              </p>
+            </div>
+            
+            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <h4 className="font-medium mb-2">Need Help?</h4>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Contact our support team if you have questions about managing applications.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   if (selectedApplication) {
     return (
@@ -499,7 +432,7 @@ const Applications = ({ applicationData, darkMode }) => {
                 <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                   {selectedApplication.name}
                 </h2>
-                <div className="flex items-center mt-1">
+                <div className="flex items-center mt-2">
                   <span className={getUrgencyBadge(selectedApplication.urgency)}>
                     {selectedApplication.urgency}
                   </span>
@@ -510,45 +443,56 @@ const Applications = ({ applicationData, darkMode }) => {
                     ID: {selectedApplication.id}
                   </span>
                 </div>
+                {selectedApplication.notes && (
+                  <p className={`mt-3 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {selectedApplication.notes}
+                  </p>
+                )}
               </div>
               <div className="flex space-x-2">
-                {selectedApplication.status === 'pending' && (
-                  <>
                     <button
-                      onClick={() => changeStatus(selectedApplication.id, 'approved')}
-                      className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm flex items-center"
-                    >
-                      <Check size={14} className="mr-1" /> Approve
+                  onClick={() => handleStatusChange(selectedApplication.id, 'approved')}
+                  className={`inline-flex items-center px-3 py-1 ${
+                    darkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-600 hover:bg-green-200'
+                  } rounded-lg text-xs`}
+                >
+                  <CheckCircle size={12} className="mr-1" />
+                  Approve
                     </button>
                     <button
-                      onClick={() => changeStatus(selectedApplication.id, 'rejected')}
-                      className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm flex items-center"
-                    >
-                      <X size={14} className="mr-1" /> Reject
+                  onClick={() => handleStatusChange(selectedApplication.id, 'rejected')}
+                  className={`inline-flex items-center px-3 py-1 ${
+                    darkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-600 hover:bg-red-200'
+                  } rounded-lg text-xs`}
+                >
+                  <XCircle size={12} className="mr-1" />
+                  Reject
                     </button>
-                    <button
-                      onClick={() => changeStatus(selectedApplication.id, 'waitlisted')}
-                      className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm flex items-center"
-                    >
-                      <Clock size={14} className="mr-1" /> Waitlist
-                    </button>
-                  </>
-                )}
-                {selectedApplication.status === 'waitlisted' && (
-                  <button
-                    onClick={() => changeStatus(selectedApplication.id, 'approved')}
-                    className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm flex items-center"
-                  >
-                    <Check size={14} className="mr-1" /> Approve
-                  </button>
-                )}
-                {selectedApplication.status === 'approved' && (
-                  <button
-                    className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm flex items-center"
-                  >
-                    <UserPlus size={14} className="mr-1" /> Add as Resident
-                  </button>
-                )}
+              </div>
+            </div>
+            
+            
+            <div className={`p-4 rounded-lg mb-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <h3 className={`text-md font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+                Basic Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Gender</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.gender}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Date of Birth</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.dob}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Language</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.language}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Application Type</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.type}</p>
+                </div>
               </div>
             </div>
             
@@ -575,10 +519,8 @@ const Applications = ({ applicationData, darkMode }) => {
                   </p>
                 </div>
                 <div>
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Application Type</p>
-                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                    {selectedApplication.type}
-                  </p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Location</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.location}</p>
                 </div>
               </div>
             </div>
@@ -586,26 +528,102 @@ const Applications = ({ applicationData, darkMode }) => {
             
             <div className={`p-4 rounded-lg mb-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
               <h3 className={`text-md font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
-                Personal Information
+                Housing Situation
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Gender</p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sleeping Rough</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.sleepingRough}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Homeless Duration</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.homelessDuration}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Group Type</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.groupType}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Group Size</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.groupSize}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Children Count</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.childrenCount}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Previous Accommodation</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.previousAccommodation}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Reason for Leaving</p>
                   <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                    {selectedApplication.gender}
+                    {Array.isArray(selectedApplication.reasonForLeaving) 
+                      ? selectedApplication.reasonForLeaving.join(', ') 
+                      : selectedApplication.reasonForLeaving}
                   </p>
                 </div>
                 <div>
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Age</p>
-                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                    {selectedApplication.age}
-                  </p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Shelter Type Needed</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.shelterType}</p>
+                </div>
+              </div>
+            </div>
+            
+            
+            <div className={`p-4 rounded-lg mb-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <h3 className={`text-md font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+                Accommodation Preferences
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Security Needed</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.securityNeeded}</p>
                 </div>
                 <div>
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Preferred Stay</p>
-                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                    {selectedApplication.preferredStay}
-                  </p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Curfew Preference</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.curfew}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Communal Living</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.communalLiving}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Smoking Preference</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.smoking}</p>
+                </div>
+              </div>
+            </div>
+
+            
+            <div className={`p-4 rounded-lg mb-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <h3 className={`text-md font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+                Support Needs
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Food Assistance</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.foodAssistance}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Benefits Help</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.benefitsHelp}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Mental Health Support</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.mentalHealth}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Substance Use Support</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.substanceUse}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Social Services</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.socialServices}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Domestic Abuse Support</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.domesticAbuse}</p>
                 </div>
               </div>
             </div>
@@ -618,66 +636,114 @@ const Applications = ({ applicationData, darkMode }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Medical Conditions</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.medicalConditions}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Wheelchair Access</p>
                   <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                    {selectedApplication.medicalConditions}
+                    {selectedApplication.wheelchair === 'Yes' ? 'Required' : 'Not Required'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            
+            <div className={`p-4 rounded-lg mb-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <h3 className={`text-md font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+                Benefits & Immigration
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Immigration Status</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.immigrationStatus}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Benefits</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>
+                    {Array.isArray(selectedApplication.benefits) 
+                      ? selectedApplication.benefits.join(', ') 
+                      : selectedApplication.benefits}
                   </p>
                 </div>
                 <div>
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Wheelchair Access Needed</p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Local Connection</p>
                   <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                    {selectedApplication.needsWheelchairAccess ? 'Yes' : 'No'}
+                    {Array.isArray(selectedApplication.localConnection) 
+                      ? selectedApplication.localConnection.join(', ') 
+                      : selectedApplication.localConnection}
                   </p>
                 </div>
               </div>
             </div>
             
             
-            {selectedApplication.familyMembers && (
               <div className={`p-4 rounded-lg mb-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
                 <h3 className={`text-md font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
-                  Family Members
+                Special Categories
                 </h3>
-                <table className={`w-full ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                  <thead>
-                    <tr className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
-                      <th className="text-left pb-2 text-sm font-medium">Name</th>
-                      <th className="text-left pb-2 text-sm font-medium">Relationship</th>
-                      <th className="text-left pb-2 text-sm font-medium">Age</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedApplication.familyMembers.map((member, index) => (
-                      <tr key={index}>
-                        <td className="py-1">{member.name}</td>
-                        <td className="py-1">{member.relationship}</td>
-                        <td className="py-1">{member.age}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Care Leaver</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.careLeaver}</p>
               </div>
-            )}
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Veteran</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.veteran}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Women Only Services</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.womenOnly}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>LGBTQ+ Friendly</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.lgbtqFriendly}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Support Workers</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.supportWorkers}</p>
+                </div>
+              </div>
+            </div>
+
             
-            
-            {selectedApplication.hasPets && (
+            {selectedApplication.pets === 'Yes' && (
               <div className={`p-4 rounded-lg mb-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
                 <h3 className={`text-md font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                   Pet Information
                 </h3>
                 <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                  {selectedApplication.petDetails || 'Has pets (details not provided)'}
+                  {selectedApplication.petDetails || 'Details not provided'}
                 </p>
               </div>
             )}
             
             
+            <div className={`p-4 rounded-lg mb-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <h3 className={`text-md font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+                Additional Information
+              </h3>
+              <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.additionalInfo}</p>
+            </div>
+            
+            
             <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
               <h3 className={`text-md font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
-                Notes
+                Consent Information
               </h3>
-              <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                {selectedApplication.notes}
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Terms Accepted</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.terms ? 'Yes' : 'No'}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Data Processing Consent</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.dataConsent ? 'Yes' : 'No'}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Contact Consent</p>
+                  <p className={darkMode ? 'text-white' : 'text-gray-800'}>{selectedApplication.contactConsent ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -768,8 +834,13 @@ const Applications = ({ applicationData, darkMode }) => {
           Applications Management
         </h1>
         <div className="flex space-x-2">
-          <button className={`px-4 py-2 ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white rounded-lg flex items-center`}>
-            <RefreshCw size={16} className="mr-2" /> Refresh
+          <button 
+            onClick={() => fetchApplications(true)}
+            className={`px-4 py-2 ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white rounded-lg flex items-center`}
+            disabled={isRefreshing}
+          >
+            <RefreshCw size={16} className={`mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
       </div>
@@ -989,30 +1060,6 @@ const Applications = ({ applicationData, darkMode }) => {
                         <Eye size={12} className="mr-1" />
                         View
                       </button>
-                      
-                      {application.status === 'pending' && (
-                        <button 
-                          onClick={() => changeStatus(application.id, 'approved')}
-                          className={`inline-flex items-center px-3 py-1 ${
-                            darkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-600 hover:bg-green-200'
-                          } rounded-lg text-xs`}
-                        >
-                          <CheckCircle size={12} className="mr-1" />
-                          Approve
-                        </button>
-                      )}
-                      
-                      {application.status === 'pending' && (
-                        <button 
-                          onClick={() => changeStatus(application.id, 'rejected')}
-                          className={`inline-flex items-center px-3 py-1 ${
-                            darkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-600 hover:bg-red-200'
-                          } rounded-lg text-xs`}
-                        >
-                          <XCircle size={12} className="mr-1" />
-                          Reject
-                        </button>
-                      )}
                     </td>
                   </tr>
                 ))}

@@ -12,6 +12,31 @@ import {
   FileCheck, RefreshCw, BarChart2, Calendar
 } from 'lucide-react';
 
+const getTimeSince = (date) => {
+  if (!date) return 'Unknown';
+  
+  const now = new Date();
+  const submittedDate = new Date(date);
+  const seconds = Math.floor((now - submittedDate) / 1000);
+  
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) return interval + (interval === 1 ? ' year ago' : ' years ago');
+  
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) return interval + (interval === 1 ? ' month ago' : ' months ago');
+  
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) return interval + (interval === 1 ? ' day ago' : ' days ago');
+  
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) return interval + (interval === 1 ? ' hour ago' : ' hours ago');
+  
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) return interval + (interval === 1 ? ' minute ago' : ' minutes ago');
+  
+  return 'Just now';
+};
+
 import AdminProfile from './tabs/AdminProfile';
 import Applications from './tabs/Applications';
 import ShelterSettings from './tabs/ShelterSettings';
@@ -26,6 +51,42 @@ const DashboardPage = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const router = useRouter();
+
+  
+  useEffect(() => {
+    const handleApplicationsUpdate = (event) => {
+      const { applications, pendingCount } = event.detail;
+      setData(prev => ({
+        ...prev,
+        applications: applications,
+        pendingApplicationsCount: pendingCount
+      }));
+    };
+
+    window.addEventListener('applicationsUpdate', handleApplicationsUpdate);
+
+    return () => {
+      window.removeEventListener('applicationsUpdate', handleApplicationsUpdate);
+    };
+  }, []);
+
+  const fetchApplicationsCount = async (shelterId) => {
+    try {
+      const applicationsResponse = await fetch(`/api/shelterAdmin/shelter-applications?shelterId=${shelterId}`);
+      const applicationsData = await applicationsResponse.json();
+      
+      if (applicationsResponse.ok) {
+        const pendingCount = applicationsData.applications.filter(app => app.status === 'pending').length;
+        setData(prev => ({
+          ...prev,
+          applications: applicationsData.applications,
+          pendingApplicationsCount: pendingCount
+        }));
+      }
+    } catch (error) {
+      logger.error(error, 'Dashboard - fetchApplicationsCount');
+    }
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -61,6 +122,7 @@ const DashboardPage = () => {
         setData(userResponseData);
 
         if (userResponseData.data?.user?.shelterId) {
+          await fetchApplicationsCount(userResponseData.data.user.shelterId);
           await fetchShelterData(userResponseData.data.user.shelterId, userResponseData.data.user.id);
         }
       } catch (error) {
@@ -72,6 +134,16 @@ const DashboardPage = () => {
     };
 
     fetchDashboardData();
+
+    
+    const refreshInterval = setInterval(() => {
+      if (data?.data?.user?.shelterId) {
+        fetchApplicationsCount(data.data.user.shelterId);
+      }
+    }, 15000); 
+
+    
+    return () => clearInterval(refreshInterval);
   }, [router]);
 
   const fetchShelterData = async (shelterId, userId) => {
@@ -215,7 +287,15 @@ const DashboardPage = () => {
           </div>
           <div className="mt-2">
             <SidebarItem icon={<LayoutDashboard size={20} />} text="Dashboard" isOpen={isSidebarOpen} isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} darkMode={darkMode} />
-            <SidebarItem icon={<FileText size={20} />} text="Applications" isOpen={isSidebarOpen} isActive={activeTab === 'applications'} onClick={() => setActiveTab('applications')} badge={shelterData?.applications?.pending || 0} darkMode={darkMode} />
+            <SidebarItem 
+              icon={<FileText size={20} />} 
+              text="Applications" 
+              isOpen={isSidebarOpen} 
+              isActive={activeTab === 'applications'} 
+              onClick={() => setActiveTab('applications')} 
+              badge={data?.pendingApplicationsCount || 0}
+              darkMode={darkMode} 
+            />
             <SidebarItem icon={<ListOrdered size={20} />} text="Waitlist" isOpen={isSidebarOpen} isActive={activeTab === 'waitlist'} onClick={() => setActiveTab('waitlist')} badge={shelterData?.waitlist?.total || 0} darkMode={darkMode} />
             <SidebarItem icon={<Users size={20} />} text="Resident Management" isOpen={isSidebarOpen} isActive={activeTab === 'residents'} onClick={() => setActiveTab('residents')} darkMode={darkMode} />
             <SidebarItem icon={<Home size={20} />} text="Shelter Settings" isOpen={isSidebarOpen} isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} darkMode={darkMode} />
@@ -307,10 +387,17 @@ const DashboardPage = () => {
 
           <main className="flex-1 overflow-y-auto p-6">
             {activeTab === 'dashboard' && (
-              <DashboardTab data={data} shelterData={shelterData} darkMode={darkMode} formatDate={formatDate} handleQuickAction={handleQuickAction} />
+              <DashboardTab 
+                data={data} 
+                shelterData={shelterData} 
+                darkMode={darkMode} 
+                formatDate={formatDate} 
+                handleQuickAction={handleQuickAction}
+                setActiveTab={setActiveTab}
+              />
             )}
             {activeTab === 'profile' && <AdminProfile userData={data?.data?.user} darkMode={darkMode} />}
-            {activeTab === 'applications' && <Applications applicationData={shelterData?.applications} darkMode={darkMode} />}
+            {activeTab === 'applications' && <Applications shelterId={data?.data?.user?.shelterId} darkMode={darkMode} />}
             {activeTab === 'waitlist' && (
               <div className="text-center py-20">
                 <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} mb-4`}>Waitlist Management</h2>
@@ -358,7 +445,7 @@ const SidebarItem = ({ icon, text, isOpen, isActive, onClick, badge, darkMode })
   </div>
 );
 
-const DashboardTab = ({ data, shelterData, darkMode, formatDate, handleQuickAction }) => (
+const DashboardTab = ({ data, shelterData, darkMode, formatDate, handleQuickAction, setActiveTab }) => (
   <>
     <div className="flex items-center justify-between mb-6">
       <div>
@@ -372,7 +459,9 @@ const DashboardTab = ({ data, shelterData, darkMode, formatDate, handleQuickActi
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Total Applications</h3>
-            <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mt-2`}>{shelterData?.applications?.total || 0}</p>
+            <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mt-2`}>
+              {data?.applications?.length || 0}
+            </p>
           </div>
           <div className={`p-3 ${darkMode ? 'bg-blue-900' : 'bg-blue-100'} rounded-lg`}>
             <FileText className={darkMode ? 'text-blue-300' : 'text-blue-600'} size={24} />
@@ -381,15 +470,21 @@ const DashboardTab = ({ data, shelterData, darkMode, formatDate, handleQuickActi
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className={`${darkMode ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-50'} rounded-lg p-2`}>
             <p className={`text-sm ${darkMode ? 'text-yellow-200' : 'text-yellow-600'}`}>Pending</p>
-            <p className={`font-bold ${darkMode ? 'text-yellow-100' : 'text-yellow-800'}`}>{shelterData?.applications?.pending || 0}</p>
+            <p className={`font-bold ${darkMode ? 'text-yellow-100' : 'text-yellow-800'}`}>
+              {data?.applications?.filter(app => app.status === 'pending').length || 0}
+            </p>
           </div>
           <div className={`${darkMode ? 'bg-green-900 text-green-200' : 'bg-green-50'} rounded-lg p-2`}>
             <p className={`text-sm ${darkMode ? 'text-green-200' : 'text-green-600'}`}>Accepted</p>
-            <p className={`font-bold ${darkMode ? 'text-green-100' : 'text-green-800'}`}>{shelterData?.applications?.accepted || 0}</p>
+            <p className={`font-bold ${darkMode ? 'text-green-100' : 'text-green-800'}`}>
+              {data?.applications?.filter(app => app.status === 'approved').length || 0}
+            </p>
           </div>
           <div className={`${darkMode ? 'bg-red-900 text-red-200' : 'bg-red-50'} rounded-lg p-2`}>
             <p className={`text-sm ${darkMode ? 'text-red-200' : 'text-red-600'}`}>Rejected</p>
-            <p className={`font-bold ${darkMode ? 'text-red-100' : 'text-red-800'}`}>{shelterData?.applications?.rejected || 0}</p>
+            <p className={`font-bold ${darkMode ? 'text-red-100' : 'text-red-800'}`}>
+              {data?.applications?.filter(app => app.status === 'rejected').length || 0}
+            </p>
           </div>
         </div>
       </div>
@@ -475,22 +570,53 @@ const DashboardTab = ({ data, shelterData, darkMode, formatDate, handleQuickActi
       <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-xl p-6`}>
         <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'} mb-4`}>Recent Applications</h3>
         <div className="space-y-3">
-          {shelterData?.applications?.recent?.map(application => (
-            <div key={application.id} className={`flex items-start p-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors cursor-pointer`}>
+          {data?.applications?.slice(0, 3).map((application, index) => (
+            <div 
+              key={application._id || application.id || `application-${index}`} 
+              className={`flex items-start p-3 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors cursor-pointer`}
+            >
               <div className="flex-shrink-0 mr-3">
-                <div className={`w-8 h-8 rounded-full ${application.urgency === 'URGENT' ? (darkMode ? 'bg-red-900 text-red-300' : 'bg-red-100 text-red-500') : application.urgency === 'FAMILY' ? (darkMode ? 'bg-orange-900 text-orange-300' : 'bg-orange-100 text-orange-500') : (darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-500')} flex items-center justify-center`}>
-                  {application.urgency === 'URGENT' ? <AlertCircle size={16} /> : application.urgency === 'FAMILY' ? <Users size={16} /> : <User size={16} />}
+                <div className={`w-8 h-8 rounded-full ${
+                  application.urgency === 'URGENT' ? (darkMode ? 'bg-red-900 text-red-300' : 'bg-red-100 text-red-500') 
+                  : application.type?.includes('Family') ? (darkMode ? 'bg-orange-900 text-orange-300' : 'bg-orange-100 text-orange-500') 
+                  : (darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-500')
+                } flex items-center justify-center`}>
+                  {application.urgency === 'URGENT' ? <AlertCircle size={16} /> 
+                   : application.type?.includes('Family') ? <Users size={16} /> 
+                   : <User size={16} />}
                 </div>
               </div>
               <div>
-                <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>{application.name} {application.urgency && <span className={`text-xs font-bold ml-2 ${application.urgency === 'URGENT' ? 'text-red-500' : 'text-yellow-500'}`}>{application.urgency}</span>}</p>
-                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Applied {application.timeAgo} • {application.type}</p>
+                <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  {application.name} 
+                  {application.urgency === 'URGENT' && 
+                    <span className={`text-xs font-bold ml-2 ${darkMode ? 'text-red-400' : 'text-red-500'}`}>
+                      URGENT
+                    </span>
+                  }
+                </p>
+                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Applied {getTimeSince(application.submittedAt)} • {application.type}
+                </p>
               </div>
-              <button className={`ml-auto ${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-600'} px-2 py-1 rounded text-xs`}>Review</button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveTab('applications');
+                }}
+                className={`ml-auto ${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-600'} px-2 py-1 rounded text-xs hover:opacity-90 transition-opacity`}
+              >
+                Review
+              </button>
             </div>
           ))}
           <div className="flex justify-center mt-4">
-            <button className={`text-sm ${darkMode ? 'text-blue-400' : 'text-blue-500'} hover:${darkMode ? 'text-blue-300' : 'text-blue-700'}`}>View all applications →</button>
+            <button 
+              onClick={() => setActiveTab('applications')}
+              className={`text-sm ${darkMode ? 'text-blue-400' : 'text-blue-500'} hover:${darkMode ? 'text-blue-300' : 'text-blue-700'} transition-colors`}
+            >
+              View all applications →
+            </button>
           </div>
         </div>
       </div>
