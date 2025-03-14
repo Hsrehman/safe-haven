@@ -6,10 +6,14 @@ import {
   validateField,
   validateForm,
 } from "@/app/utils/formValidation";
+import { sanitizeData } from "@/app/utils/sanitizer";
 import PlacesAutocomplete from "@/app/components/PlacesAutocomplete";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ClipboardList, Send } from "lucide-react";
 import { useState, useEffect } from "react";
+import logger from '@/app/utils/logger';
+import { debounce } from 'lodash';
+import { useRouter } from 'next/navigation';
 
 const fadeIn = {
   initial: { opacity: 0, x: 20 },
@@ -17,31 +21,30 @@ const fadeIn = {
   exit: { opacity: 0, x: -20 },
 };
 
-const slideUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 20 },
-};
-
 const shouldShowField = (field, formData) => {
   const conditions = {
-    womenOnly: () =>
-      ["Female", "Non-binary", "Other", "Prefer not to say"].includes(
-        formData.gender
-      ),
+    
+    groupSize: () => formData.groupType && formData.groupType !== "Just myself",
+    childrenCount: () => formData.groupType === "Myself and my family",
+
+    
+    curfew: () => formData.shelterType !== "Emergency (tonight)",
+    communalLiving: () => formData.shelterType === "Short-term (few days/weeks)" || formData.shelterType === "Long-term",
+
+    
+    mentalHealthDetails: () => formData.mentalHealth === "Yes",
+    substanceUseDetails: () => formData.substanceUse === "Yes",
+    medicalDetails: () => formData.medicalConditions === "Yes",
+    
+    
+    petDetails: () => formData.pets === "Yes",
+    
+    
+    womenOnly: () => ["Female", "Non-binary", "Other", "Prefer not to say"].includes(formData.gender),
     lgbtqFriendly: () => formData.gender !== "Prefer not to say",
-    children: () =>
-      ["With family", "With a partner"].includes(formData.groupType),
-    childrenCount: () =>
-      ["With family", "With a partner"].includes(formData.groupType),
-    curfew: () => formData.shelterType === "Long-Term",
-    smoking: () => formData.shelterType === "Long-Term",
-    communalLiving: () => formData.shelterType === "Long-Term",
-    mentalHealth: () => Boolean(formData.medicalConditions),
-    socialServices: () =>
-      formData.groupType !== "Alone" || formData.financialAssistance === "Yes",
-    foodAssistance: () => formData.shelterType === "Tonight",
-    wheelchair: () => Boolean(formData.medicalConditions),
+    
+    
+    supportWorkerDetails: () => formData.supportWorkers === "Yes",
   };
 
   return conditions[field.id] ? conditions[field.id]() : true;
@@ -70,18 +73,94 @@ const FormField = ({
   error,
   formData,
   handleChange,
+  emailAvailable,
 }) => {
   const baseStyle =
     "w-full px-5 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3B82C4] focus:border-[#1A5276] transition-all duration-300 bg-gray-50 text-[#1F3A52]";
   const errorStyle = "border-red-500 bg-red-50";
   const validStyle = "border-gray-200 hover:border-purple-300";
+  const emailUnavailableStyle = "border-yellow-400 bg-yellow-50";
 
-  const fieldStyle = `${baseStyle} ${error ? errorStyle : validStyle}`;
+  const getFieldStyle = () => {
+    if (field.type === 'email' && emailAvailable === false) {
+      return `${baseStyle} ${emailUnavailableStyle}`;
+    }
+    return `${baseStyle} ${error ? errorStyle : validStyle}`;
+  };
 
   switch (field.type) {
     case "text":
     case "email":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <input
+            type={field.type}
+            placeholder={field.placeholder}
+            value={value || ""}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            onBlur={() => onBlur(field.id)}
+            className={`${getFieldStyle()} transform transition-all duration-300 hover:scale-[1.01]`}
+          />
+          {field.type === 'email' && value && (
+            <>
+              {emailAvailable === false && !error && (
+                <p className="text-yellow-600 text-sm mt-1 ml-2">Email already registered</p>
+              )}
+              {emailAvailable === true && !error && (
+                <p className="text-green-600 text-sm mt-1 ml-2">Email available</p>
+              )}
+            </>
+          )}
+        </motion.div>
+      );
     case "tel":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <input
+            type="tel"
+            placeholder="07123456789"
+            value={value || ""}
+            onChange={(e) => {
+                let numericValue = e.target.value.replace(/\D/g, '');
+                
+                if (numericValue) {
+                  if (numericValue.startsWith('07')) {
+                    if (numericValue.length >= 3) {
+                      const thirdDigit = parseInt(numericValue.charAt(2));
+                      if (thirdDigit === 0) {
+                        return; 
+                      }
+                    }
+                    
+                    if (numericValue.length <= 11) {
+                      onChange(field.id, numericValue);
+                    }
+                  } else if (numericValue.length <= 2) {
+                    
+                    onChange(field.id, numericValue);
+                  }
+                } else {
+                  
+                  onChange(field.id, '');
+                }
+              }}
+            onBlur={() => onBlur(field.id)}
+            className={`${getFieldStyle()} transform transition-all duration-300 hover:scale-[1.01]`}
+            pattern="[0-9]*"
+            inputMode="numeric"
+            maxLength="11"
+          />
+          <p className="text-gray-500 text-sm ml-2">UK mobile number (e.g., 07123456789)</p>
+        </motion.div>
+      );
     case "date":
     case "number":
       return (
@@ -96,7 +175,7 @@ const FormField = ({
             value={value || ""}
             onChange={(e) => onChange(field.id, e.target.value)}
             onBlur={() => onBlur(field.id)}
-            className={`${fieldStyle} transform transition-all duration-300 hover:scale-[1.01]`}
+            className={`${getFieldStyle()} transform transition-all duration-300 hover:scale-[1.01]`}
           />
         </motion.div>
       );
@@ -134,7 +213,7 @@ const FormField = ({
             value={value || ""}
             onChange={(e) => onChange(field.id, e.target.value)}
             onBlur={() => onBlur(field.id)}
-            className={`${fieldStyle} transform transition-all duration-300 hover:scale-[1.01]`}
+            className={`${getFieldStyle()} transform transition-all duration-300 hover:scale-[1.01]`}
           >
             <option value="">Select...</option>
             {field.options.map((opt) => (
@@ -201,7 +280,7 @@ const FormField = ({
             value={value || ""}
             onChange={(e) => onChange(field.id, e.target.value)}
             onBlur={() => onBlur(field.id)}
-            className={`${fieldStyle} h-32 transform transition-all duration-300 hover:scale-[1.01]`}
+            className={`${getFieldStyle()} h-32 transform transition-all duration-300 hover:scale-[1.01]`}
           />
         </motion.div>
       );
@@ -250,7 +329,7 @@ const FormField = ({
                   onChange={(e) =>
                     handleChange(field.subQuestions[1].id, e.target.value)
                   }
-                  className={`${fieldStyle} transform transition-all duration-300 hover:scale-[1.01]`}
+                  className={`${getFieldStyle()} transform transition-all duration-300 hover:scale-[1.01]`}
                 />
               </motion.div>
             )}
@@ -258,30 +337,193 @@ const FormField = ({
         </motion.div>
       );
 
+    case "checkbox-group":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <div className="flex flex-col gap-3">
+            {field.options.map((option) => (
+              <label
+                key={option}
+                className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  value={option}
+                  checked={Array.isArray(value) && value.includes(option)}
+                  onChange={(e) => {
+                    const newValue = Array.isArray(value) ? [...value] : [];
+                    if (e.target.checked) {
+                      newValue.push(option);
+                    } else {
+                      const index = newValue.indexOf(option);
+                      if (index > -1) {
+                        newValue.splice(index, 1);
+                      }
+                    }
+                    onChange(field.id, newValue);
+                  }}
+                  className="form-checkbox h-5 w-5 text-[#3B82C4] rounded border-gray-300 focus:ring-[#3B82C4]"
+                />
+                <span className="text-gray-700">{option}</span>
+              </label>
+            ))}
+          </div>
+        </motion.div>
+      );
+
     default:
       return null;
   }
 };
+
 export default function FormPage() {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [formId, setFormId] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    
+    if (mode === 'edit') {
+      const storedQuestion = localStorage.getItem('editingQuestion');
+      const storedFormData = localStorage.getItem('editingFormData');
+      const storedFormId = localStorage.getItem('formId');
+      
+      if (storedQuestion && storedFormData) {
+        try {
+          const question = JSON.parse(storedQuestion);
+          const previousData = JSON.parse(storedFormData);
+          
+          setIsEditMode(true);
+          setEditingQuestion(question);
+          setFormData(previousData);
+          if (storedFormId) {
+            setFormId(storedFormId);
+          }
+          
+          
+          const visibleQuestions = formQuestions.filter(q => shouldShowField(q, previousData));
+          const questionIndex = visibleQuestions.findIndex(q => q.id === question.id);
+          if (questionIndex !== -1) {
+            setStep(questionIndex);
+          }
+        } catch (error) {
+          console.error('Error parsing edit data:', error);
+          router.push('/form/edit-answers');
+        }
+      } else {
+        
+        router.push('/form/edit-answers');
+      }
+    } else {
+      
+      setFormData({});
+      setFormId(null);
+      setStep(0);
+    }
+  }, [router]);
 
   const getVisibleQuestions = () =>
     formQuestions.filter((q) => shouldShowField(q, formData));
   const currentQuestion = getVisibleQuestions()[step];
 
+  const checkEmail = async (email) => {
+    if (!email) {
+      setEmailAvailable(null);
+      return;
+    }
+
+    
+    if (isEditMode) {
+      const storedData = localStorage.getItem('formData');
+      try {
+        const parsedData = JSON.parse(storedData);
+        if (parsedData.data.email === email) {
+          setEmailAvailable(true);
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking stored email:', error);
+      }
+    }
+
+    
+    const field = formQuestions.find(q => q.id === 'email');
+    const validation = validateField(field, email);
+    if (!validation.isValid) {
+      setEmailAvailable(null);
+      return; 
+    }
+
+    try {
+      const response = await fetch('/api/userForm/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check email availability');
+      }
+
+      const data = await response.json();
+      
+      setEmailAvailable(data.available);
+      if (!data.available) {
+        
+        setErrors(prev => ({ ...prev, email: null }));
+      } else {
+        setErrors(prev => ({ ...prev, email: null }));
+      }
+    } catch (error) {
+      logger.error(error, 'Form Page - checkEmail');
+      setEmailAvailable(null);
+      setErrors(prev => ({ ...prev, email: "Error checking email availability" }));
+    }
+  };
+
+  const debouncedCheckEmail = debounce(checkEmail, 500);
+
   const handleChange = (id, value) => {
     setFormData((prev) => ({ ...prev, [id]: value }));
-
+    
+    
+    if (errors[id]) {
+      setErrors((prev) => ({ ...prev, [id]: null }));
+    }
+    
+    
+    if (id === 'email') {
+      setEmailAvailable(null); 
+      setErrors(prev => ({ ...prev, email: null })); 
+      if (value) {
+        debouncedCheckEmail(value);
+      }
+      return;
+    }
+    
+    
     const field = formQuestions.find((q) => q.id === id);
     if (field) {
       const validation = validateField(field, value);
-      setErrors((prev) => ({
-        ...prev,
-        [id]: validation.isValid ? null : validation.error,
-      }));
+      if (!validation.isValid) {
+        setErrors((prev) => ({
+          ...prev,
+          [id]: validation.error,
+        }));
+      }
     }
   };
 
@@ -289,127 +531,219 @@ export default function FormPage() {
     const field = formQuestions.find((q) => q.id === id);
     if (field) {
       const validation = validateField(field, formData[id]);
-      setErrors((prev) => ({
-        ...prev,
-        [id]: validation.isValid ? null : validation.error,
-      }));
-    }
-  };
-
-  const handleNext = () => {
-    const validation = validateField(
-      currentQuestion,
-      formData[currentQuestion.id],
-      formData
-    );
-
-    if (!validation.isValid) {
-      if (currentQuestion.type === "compound") {
-        const hasChildrenValue = formData[currentQuestion.subQuestions[0].id];
-        if (!hasChildrenValue) {
+      if (field.id === 'email') {
+        
+        if (formData[id] && !validation.isValid) {
           setErrors((prev) => ({
             ...prev,
-            [currentQuestion.subQuestions[0].id]: validation.error,
-          }));
-        } else if (hasChildrenValue === "Yes") {
-          setErrors((prev) => ({
-            ...prev,
-            [currentQuestion.subQuestions[1].id]: validation.error,
+            [id]: validation.error,
           }));
         }
       } else {
         setErrors((prev) => ({
           ...prev,
-          [currentQuestion.id]: validation.error,
+          [id]: validation.isValid ? null : validation.error,
         }));
       }
-      return;
+    }
+  };
+
+  const handleNext = () => {
+    const validation = validateField(currentQuestion, formData[currentQuestion.id]);
+    
+    
+    if (currentQuestion.id === 'email') {
+      const emailValue = formData[currentQuestion.id];
+      
+      
+      if (!emailValue || emailValue.trim() === '') {
+        if (step < getVisibleQuestions().length - 1) {
+          setStep(s => s + 1);
+        }
+        return;
+      }
+      
+      
+      if (!validation.isValid) {
+        setErrors(prev => ({ ...prev, [currentQuestion.id]: validation.error }));
+        return;
+      }
+      
+      if (!emailAvailable) {
+        return;
+      }
+    } else {
+      
+      if (!validation.isValid) {
+        setErrors(prev => ({ ...prev, [currentQuestion.id]: validation.error }));
+        return;
+      }
     }
 
     if (step < getVisibleQuestions().length - 1) {
-      setStep((s) => s + 1);
+      setStep(s => s + 1);
     }
   };
 
   const handleSubmit = async () => {
+    
+    if (editingQuestion?.id === 'email' && formData.email && !emailAvailable) {
+      setErrors(prev => ({
+        ...prev,
+        email: "Please use a different email address"
+      }));
+      return;
+    }
+
+    
+    const completeFormData = formQuestions.reduce((acc, question) => {
+      
+      
+      acc[question.id] = formData[question.id] !== undefined ? formData[question.id] : '';
+      return acc;
+    }, {});
+
+    if (isEditMode) {
+      setIsSubmitting(true);
+      try {
+        const startTime = performance.now();
+        
+        const response = await fetch("/api/userForm/submit-form", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Request-Time": new Date().toISOString(),
+          },
+          body: JSON.stringify({
+            formData: {
+              ...completeFormData,
+              location_coordinates: formData.location_coordinates || null  
+            },
+            formId: formId
+          }),
+        });
+
+        const data = await response.json();
+        const requestDuration = performance.now() - startTime;
+
+        logger.performance('Form Update', requestDuration);
+        logger.dev('Network Information', {
+          endpoint: "/api/userForm/submit-form",
+          status: response.status,
+          statusText: response.statusText
+        });
+
+        if (data.success) {
+          const storedData = localStorage.getItem('formData');
+          try {
+            const existingData = JSON.parse(storedData);
+            const updatedData = {
+              timestamp: existingData.timestamp,
+              data: {
+                ...completeFormData,
+                location_coordinates: formData.location_coordinates || null  
+              },
+              id: formId
+            };
+            localStorage.setItem('formData', JSON.stringify(updatedData));
+            router.push('/form/edit-answers');
+          } catch (error) {
+            console.error('Error updating localStorage:', error);
+            router.push('/form/edit-answers');
+          }
+        } else {
+          throw new Error(data.message || "Failed to update form");
+        }
+      } catch (error) {
+        logger.error(error, 'Form Update');
+        alert(`Error updating form: ${error.message}`);
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    
     const { isValid, errors: validationErrors } = validateForm(
       formData,
       getVisibleQuestions()
     );
 
-    console.group("Form Submission Process");
-    console.log("[Form Data]:", {
-      ...formData,
+    
+    if (!isEditMode && formData.email && !emailAvailable) {
+      setErrors(prev => ({
+        ...prev,
+        email: "Please use a different email address"
+      }));
+      return;
+    }
+
+    logger.dev('Form Submission Process', {
+      formData: sanitizeData(formData),
       totalQuestions: getVisibleQuestions().length,
-      submittedAt: new Date().toISOString(),
+      validationStatus: { isValid, errors: validationErrors }
     });
-    console.log("[Validation Status]:", { isValid, errors: validationErrors });
 
     if (!isValid) {
-      console.error("[Validation Failed]:", validationErrors);
-      console.groupEnd();
+      logger.dev('Validation Failed:', validationErrors);
       setErrors(validationErrors);
       return;
     }
 
     setIsSubmitting(true);
-    console.log("[Starting] Form submission process...");
-
     try {
-      console.log("[Request] Sending to API...");
       const startTime = performance.now();
-
-      const response = await fetch("/api/submit-form", {
+      const response = await fetch("/api/userForm/submit-form", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Request-Time": new Date().toISOString(),
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          formData: completeFormData
+        }),
       });
-
-      const endTime = performance.now();
-      const requestDuration = endTime - startTime;
 
       const data = await response.json();
+      const requestDuration = performance.now() - startTime;
 
-      console.log("[Network Information]:", {
-        endpoint: "/api/submit-form",
-        requestDuration: `${requestDuration.toFixed(2)}ms`,
+      logger.performance('Form Submission', requestDuration);
+      logger.dev('Network Information', {
+        endpoint: "/api/userForm/submit-form",
         status: response.status,
-        statusText: response.statusText,
-        headers: {
-          contentType: response.headers.get("content-type"),
-          server: response.headers.get("server"),
-        },
+        statusText: response.statusText
       });
 
-      console.log("[Server Response]:", data);
-
       if (data.success) {
-        console.log("[Success] Form submitted successfully!", {
-          timestamp: new Date().toISOString(),
+        logger.dev('Form Submission Success', {
           submissionId: data.id,
-          response: data,
+          timestamp: new Date().toISOString()
         });
-        alert("Form submitted successfully!");
+        
+        const submissionData = {
+          timestamp: new Date().toISOString(),
+          data: {
+            ...completeFormData,
+            location_coordinates: formData.location_coordinates || null  
+          },
+          id: data.id
+        };
+        localStorage.setItem('formData', JSON.stringify(submissionData));
+        localStorage.setItem('formId', data.id);
+        
         setFormData({});
+        setFormId(null);
         setStep(0);
         setErrors({});
+        router.push('/shelterPortal/shelterOptions');
       } else {
         throw new Error(data.message || "Form submission failed");
       }
     } catch (error) {
-      console.error("[Error] Form Submission Failed:", {
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        formData,
-      });
+      logger.error(error, 'Form Submission');
       alert(`Error submitting form: ${error.message}`);
     } finally {
       setIsSubmitting(false);
-      console.log("[Completed] Form submission process");
-      console.groupEnd();
     }
   };
 
@@ -429,10 +763,10 @@ export default function FormPage() {
             className="text-center mb-12"
           >
             <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#3B82C4] to-[#1A5276]">
-              Find Your Safe Space
+              {isEditMode ? 'Edit Your Answer' : 'Find Your Safe Space'}
             </h1>
             <p className="mt-4 text-lg text-gray-600">
-              We are here to help you find the right shelter for your needs
+              {isEditMode ? 'Update your response below' : 'We are here to help you find the right shelter for your needs'}
             </p>
           </motion.div>
 
@@ -505,6 +839,7 @@ export default function FormPage() {
                       error={errors[currentQuestion.id]}
                       formData={formData}
                       handleChange={handleChange}
+                      emailAvailable={emailAvailable}
                     />
                     <ErrorMessage error={errors[currentQuestion.id]} />
                   </motion.div>
@@ -516,22 +851,22 @@ export default function FormPage() {
                   className="flex justify-between mt-10 pt-6 border-t border-gray-100"
                 >
                   <motion.button
-                    onClick={() => setStep((s) => s - 1)}
-                    disabled={step === 0}
-                    whileHover={step !== 0 ? { scale: 1.02, x: -5 } : {}}
-                    whileTap={step !== 0 ? { scale: 0.98 } : {}}
+                    onClick={() => isEditMode ? router.push('/form/edit-answers') : setStep(s => s - 1)}
+                    disabled={!isEditMode && step === 0}
+                    whileHover={(!isEditMode && step !== 0) || isEditMode ? { scale: 1.02, x: -5 } : {}}
+                    whileTap={(!isEditMode && step !== 0) || isEditMode ? { scale: 0.98 } : {}}
                     className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 
                     ${
-                      step === 0
+                      !isEditMode && step === 0
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
                     }`}
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back
+                    {isEditMode ? 'Back to Questions' : 'Back'}
                   </motion.button>
 
-                  {step === getVisibleQuestions().length - 1 ? (
+                  {step === getVisibleQuestions().length - 1 || isEditMode ? (
                     <motion.button
                       onClick={handleSubmit}
                       disabled={isSubmitting}
@@ -571,7 +906,7 @@ export default function FormPage() {
                         </motion.span>
                       ) : (
                         <>
-                          <span>Submit Application</span>
+                          <span>{isEditMode ? 'Save Changes' : 'Submit Application'}</span>
                           <Send className="w-4 h-4 ml-2" />
                         </>
                       )}

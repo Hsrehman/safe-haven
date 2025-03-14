@@ -1,95 +1,83 @@
 import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
+import { UserService } from "@/lib/auth/userService";
+import { TokenManager } from "@/lib/auth/tokenManager";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import logger from "@/app/utils/logger";
 
 export async function POST(request) {
   try {
-    const { email, password } = await request.json();
-
-    if (!email || !password) {
-      console.error("[Login Error]:", "Missing email or password");
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Missing email or password",
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
-    }
-
-    const client = await clientPromise;
+    const { email, password, googleCredential } = await request.json();
+    const client = await UserService.clientPromise;
     const db = client.db("shelterDB");
 
-    const user = await db.collection("adminUsers").findOne({ email: email });
-
-    if (!user) {
-      console.error("[Login Error]:", "Invalid credentials");
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid credentials",
-          timestamp: new Date().toISOString(),
-        },
-        { status: 401 }
-      );
+    if (googleCredential) {
+      const response = await fetch(`${request.headers.get('origin')}/api/shelterAdmin/google-auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: googleCredential })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return NextResponse.json({ success: false, message: data.message || "Google auth failed" }, { status: 401 });
+      }
+      return NextResponse.json(data);
     }
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatch) {
-      console.error("[Login Error]:", "Invalid credentials");
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid credentials",
-          timestamp: new Date().toISOString(),
-        },
-        { status: 401 }
-      );
+    if (!email || !password) {
+      return NextResponse.json({ success: false, message: "Missing credentials" }, { status: 400 });
     }
 
-    if (!user.isVerified) {
-      console.error("[Login Error]:", "Email not verified");
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Email not verified",
-          timestamp: new Date().toISOString(),
-        },
-        { status: 403 }
-      );
+    const user = await UserService.loadUserByEmail(email);
+    if (!user || !await bcrypt.compare(password, user.password) || !user.isVerified) {
+      return NextResponse.json({ success: false, message: "Invalid credentials or unverified account" }, { status: 401 });
     }
 
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    if (user.twoFactorEnabled) {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      await db.collection("adminUsers").updateOne(
+        { _id: user._id },
+        { 
+          $set: { 
+            otp, 
+            otpExpiry: new Date(Date.now() + (15 * 60 * 1000)) 
+          } 
+        }
+      );
+      
+      const transporter = nodemailer.createTransport({
+        host: "smtp-relay.brevo.com",
+        port: 587,
+        auth: { user: process.env.BREVO_USER, pass: process.env.BREVO_PASS }
+      });
+      
+      await transporter.sendMail({
+        from: "verify.safehaven@gmail.com",
+        to: email,
+        subject: "Your OTP for Login",
+        html: `<p>Hello ${user.adminName || ''},</p><p>Your OTP is: <strong>${otp}</strong>. It expires in 15 minutes.</p>`
+      });
 
-    console.log("[Login Success]:", `User ${email} logged in`);
-    return NextResponse.json({
-      success: true,
-      message: "Login successful",
-      token: token,
-      timestamp: new Date().toISOString(),
-    });
+      const response = NextResponse.json({ success: true, message: "Enter OTP" });
+      response.cookies.set("tempToken", TokenManager.generateOTPToken(user, otp), { 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production', 
+        sameSite: "lax", 
+        maxAge: 15 * 60 
+      });
+
+      return response;
+    } else {
+      const { accessToken, refreshToken } = TokenManager.generateTokens(user);
+      const response = NextResponse.json({ success: true });
+      return TokenManager.setAuthCookies(response, accessToken, refreshToken);
+    }
   } catch (error) {
-    console.error("[Login Error]:", {
-      message: error.message,
-      timestamp: new Date().toISOString(),
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Login failed",
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
+    logger.error(error, 'Login API');
+    return NextResponse.json({ 
+      success: false, 
+      message: "An error occurred during login" 
+    }, { status: 500 });
   }
 }
